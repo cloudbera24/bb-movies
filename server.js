@@ -14,13 +14,15 @@ app.use(express.json());
 // Serve static files from public directory (if any)
 app.use(express.static('public'));
 
-// API Proxy endpoint
-app.get('/api/movies', async (req, res) => {
+// API Proxy endpoints
+app.get('/api/search/:query', async (req, res) => {
     try {
-        const { query = '', page = 1 } = req.query;
-        const apiUrl = `https://movieapi.giftedtech.co.ke/api/search/?query=${encodeURIComponent(query)}&page=${page}`;
+        const { query } = req.params;
+        const { page = 1 } = req.query;
         
-        console.log('🔍 Fetching movies from:', apiUrl);
+        const apiUrl = `https://movieapi.giftedtech.co.ke/api/search/${encodeURIComponent(query)}?page=${page}`;
+        
+        console.log('🔍 Searching movies from:', apiUrl);
         
         const response = await fetch(apiUrl, {
             headers: {
@@ -36,15 +38,91 @@ app.get('/api/movies', async (req, res) => {
         
         const data = await response.json();
         
-        console.log('✅ API Response received, results:', Array.isArray(data) ? data.length : (data.results ? data.results.length : 'unknown'));
+        console.log('✅ Search results received');
         
         res.json(data);
     } catch (error) {
-        console.error('❌ Proxy Error:', error.message);
+        console.error('❌ Search Error:', error.message);
         res.status(500).json({ 
-            error: 'Failed to fetch movies from API',
+            error: 'Failed to search movies',
             details: error.message,
-            results: [] 
+            results: { items: [] }
+        });
+    }
+});
+
+// Get movie info by ID
+app.get('/api/info/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const apiUrl = `https://movieapi.giftedtech.co.ke/api/info/${id}`;
+        
+        console.log('🔍 Fetching movie info from:', apiUrl);
+        
+        const response = await fetch(apiUrl, {
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                'Accept': 'application/json',
+            },
+            timeout: 10000
+        });
+        
+        if (!response.ok) {
+            throw new Error(`API responded with status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        
+        console.log('✅ Movie info received');
+        
+        res.json(data);
+    } catch (error) {
+        console.error('❌ Movie Info Error:', error.message);
+        res.status(500).json({ 
+            error: 'Failed to fetch movie info',
+            details: error.message
+        });
+    }
+});
+
+// Get download sources
+app.get('/api/sources/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { season, episode } = req.query;
+        
+        let apiUrl = `https://movieapi.giftedtech.co.ke/api/sources/${id}`;
+        if (season) {
+            apiUrl += `?season=${season}`;
+            if (episode) {
+                apiUrl += `&episode=${episode}`;
+            }
+        }
+        
+        console.log('🔍 Fetching download sources from:', apiUrl);
+        
+        const response = await fetch(apiUrl, {
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                'Accept': 'application/json',
+            },
+            timeout: 10000
+        });
+        
+        if (!response.ok) {
+            throw new Error(`API responded with status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        
+        console.log('✅ Download sources received');
+        
+        res.json(data);
+    } catch (error) {
+        console.error('❌ Sources Error:', error.message);
+        res.status(500).json({ 
+            error: 'Failed to fetch download sources',
+            details: error.message
         });
     }
 });
@@ -137,6 +215,11 @@ app.get('/', (req, res) => {
         .download-actions { display: flex; gap: 0.5rem; }
         .btn-delete { background: transparent; color: var(--accent-red); border: 1px solid var(--accent-red); }
         
+        .quality-selector { margin: 1rem 0; }
+        .quality-options { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+        .quality-btn { padding: 0.5rem 1rem; border: 1px solid var(--accent-red); background: transparent; color: var(--text-primary); border-radius: 4px; cursor: pointer; transition: all 0.3s ease; }
+        .quality-btn:hover, .quality-btn.active { background: var(--accent-red); color: white; }
+        
         .loading-spinner { display: flex; justify-content: center; align-items: center; padding: 2rem; }
         .spinner { width: 50px; height: 50px; border: 4px solid rgba(229, 9, 20, 0.3); border-left: 4px solid var(--accent-red); border-radius: 50%; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
@@ -214,7 +297,10 @@ app.get('/', (req, res) => {
     </main>
 
     <div class="modal" id="movieModal">
-        <div class="modal-content"><span class="close-modal">&times;</span><div class="modal-body" id="modalBody"></div></div>
+        <div class="modal-content">
+            <span class="close-modal">&times;</span>
+            <div class="modal-body" id="modalBody"></div>
+        </div>
     </div>
 
     <section class="section hidden" id="watchlist-section">
@@ -236,75 +322,530 @@ app.get('/', (req, res) => {
     <script>
         class BBMovies {
             constructor() {
-                this.currentPage = 1; this.isLoading = false; this.currentSection = 'home';
+                this.currentPage = 1; 
+                this.isLoading = false; 
+                this.currentSection = 'home';
                 this.watchlist = JSON.parse(localStorage.getItem('bb_watchlist')) || [];
                 this.downloads = JSON.parse(localStorage.getItem('bb_downloads')) || [];
                 this.continueWatching = JSON.parse(localStorage.getItem('bb_continue')) || [];
+                this.currentMovieDetails = null;
                 this.init();
             }
-            init() { this.bindEvents(); this.loadInitialData(); this.updateUI(); this.setupIntersectionObserver(); }
+
+            init() { 
+                this.bindEvents(); 
+                this.loadInitialData(); 
+                this.updateUI(); 
+                this.setupIntersectionObserver(); 
+            }
+
             bindEvents() {
-                const searchInput = document.getElementById('searchInput'); let searchTimeout;
-                searchInput.addEventListener('input', (e) => { clearTimeout(searchTimeout); searchTimeout = setTimeout(() => { this.handleSearch(e.target.value); }, 500); });
-                document.querySelectorAll('.nav-link').forEach(link => { link.addEventListener('click', (e) => { e.preventDefault(); this.showSection(link.dataset.section); }); });
-                document.querySelector('.close-modal').addEventListener('click', () => { this.closeModal(); });
-                document.getElementById('movieModal').addEventListener('click', (e) => { if (e.target.id === 'movieModal') this.closeModal(); });
-                document.querySelector('.hero-btn').addEventListener('click', () => { document.getElementById('searchInput').focus(); });
-                window.addEventListener('scroll', () => { this.handleInfiniteScroll(); });
+                const searchInput = document.getElementById('searchInput'); 
+                let searchTimeout;
+                searchInput.addEventListener('input', (e) => { 
+                    clearTimeout(searchTimeout); 
+                    searchTimeout = setTimeout(() => { 
+                        this.handleSearch(e.target.value); 
+                    }, 500); 
+                });
+
+                document.querySelectorAll('.nav-link').forEach(link => { 
+                    link.addEventListener('click', (e) => { 
+                        e.preventDefault(); 
+                        this.showSection(link.dataset.section); 
+                    }); 
+                });
+
+                document.querySelector('.close-modal').addEventListener('click', () => { 
+                    this.closeModal(); 
+                });
+
+                document.getElementById('movieModal').addEventListener('click', (e) => { 
+                    if (e.target.id === 'movieModal') this.closeModal(); 
+                });
+
+                document.querySelector('.hero-btn').addEventListener('click', () => { 
+                    document.getElementById('searchInput').focus(); 
+                });
+
+                window.addEventListener('scroll', () => { 
+                    this.handleInfiniteScroll(); 
+                });
             }
-            async loadInitialData() { await Promise.all([this.loadFeaturedMovies(), this.loadTrendingMovies()]); this.updateContinueWatching(); }
+
+            async loadInitialData() { 
+                await Promise.all([
+                    this.loadFeaturedMovies(), 
+                    this.loadTrendingMovies()
+                ]); 
+                this.updateContinueWatching(); 
+            }
+
             async fetchMovies(query = '', page = 1) {
-                try { this.showLoading(); const apiUrl = \`/api/movies?query=\${encodeURIComponent(query)}&page=\${page}\`;
-                    const response = await fetch(apiUrl); if (!response.ok) throw new Error(\`HTTP error! status: \${response.status}\`);
-                    const data = await response.json(); return data;
-                } catch (error) { console.error('Error fetching movies:', error); return { results: [] }; } 
-                finally { this.hideLoading(); }
+                try { 
+                    this.showLoading(); 
+                    const apiUrl = \`/api/search/\${encodeURIComponent(query)}?page=\${page}\`;
+                    const response = await fetch(apiUrl); 
+                    if (!response.ok) throw new Error(\`HTTP error! status: \${response.status}\`);
+                    const data = await response.json(); 
+                    return data;
+                } catch (error) { 
+                    console.error('Error fetching movies:', error); 
+                    return { results: { items: [] } }; 
+                } finally {
+                    this.hideLoading(); 
+                }
             }
-            async handleSearch(query) { if (!query.trim()) { this.hideSearchResults(); return; } this.currentPage = 1; const data = await this.fetchMovies(query); this.displaySearchResults(data.results || data, query); }
-            async loadFeaturedMovies() { const data = await this.fetchMovies('action'); const movies = data.results || data; this.displayMovies(movies.slice(0, 8), 'featured-grid'); }
-            async loadTrendingMovies() { const data = await this.fetchMovies('popular'); const movies = data.results || data; this.displayMovies(movies.slice(0, 12), 'trending-grid'); }
+
+            async fetchMovieInfo(movieId) {
+                try {
+                    this.showLoading();
+                    const apiUrl = \`/api/info/\${movieId}\`;
+                    const response = await fetch(apiUrl);
+                    if (!response.ok) throw new Error(\`HTTP error! status: \${response.status}\`);
+                    const data = await response.json();
+                    return data;
+                } catch (error) {
+                    console.error('Error fetching movie info:', error);
+                    throw error;
+                } finally {
+                    this.hideLoading();
+                }
+            }
+
+            async fetchDownloadSources(movieId) {
+                try {
+                    this.showLoading();
+                    const apiUrl = \`/api/sources/\${movieId}\`;
+                    const response = await fetch(apiUrl);
+                    if (!response.ok) throw new Error(\`HTTP error! status: \${response.status}\`);
+                    const data = await response.json();
+                    return data;
+                } catch (error) {
+                    console.error('Error fetching download sources:', error);
+                    throw error;
+                } finally {
+                    this.hideLoading();
+                }
+            }
+
+            async handleSearch(query) { 
+                if (!query.trim()) { 
+                    this.hideSearchResults(); 
+                    return; 
+                } 
+                this.currentPage = 1; 
+                const data = await this.fetchMovies(query); 
+                this.displaySearchResults(data.results.items || [], query); 
+            }
+
+            async loadFeaturedMovies() { 
+                const data = await this.fetchMovies('marvel'); 
+                const movies = data.results.items || []; 
+                this.displayMovies(movies.slice(0, 8), 'featured-grid'); 
+            }
+
+            async loadTrendingMovies() { 
+                const data = await this.fetchMovies('action'); 
+                const movies = data.results.items || []; 
+                this.displayMovies(movies.slice(0, 12), 'trending-grid'); 
+            }
+
             displayMovies(movies, containerId) {
-                const container = document.getElementById(containerId); if (!container || !movies) return;
+                const container = document.getElementById(containerId); 
+                if (!container || !movies) return;
                 const moviesArray = Array.isArray(movies) ? movies : [movies];
                 container.innerHTML = moviesArray.map(movie => this.createMovieCard(movie)).join('');
-                container.querySelectorAll('.movie-card').forEach((card, index) => { card.addEventListener('click', () => { this.showMovieDetails(moviesArray[index]); }); });
+                container.querySelectorAll('.movie-card').forEach((card, index) => { 
+                    card.addEventListener('click', () => { 
+                        this.showMovieDetails(moviesArray[index]); 
+                    }); 
+                });
             }
+
             displaySearchResults(movies, query) {
-                const section = document.getElementById('search-results'); const grid = document.getElementById('search-results-grid'); const noResults = document.getElementById('noResults');
+                const section = document.getElementById('search-results'); 
+                const grid = document.getElementById('search-results-grid'); 
+                const noResults = document.getElementById('noResults');
                 const moviesArray = Array.isArray(movies) ? movies : (movies ? [movies] : []);
-                if (!moviesArray || moviesArray.length === 0) { grid.innerHTML = ''; noResults.style.display = 'block'; section.style.display = 'block'; return; }
-                noResults.style.display = 'none'; this.displayMovies(moviesArray, 'search-results-grid'); section.style.display = 'block';
-                document.querySelectorAll('.section').forEach(section => { if (section.id !== 'search-results' && !section.classList.contains('hidden')) section.style.display = 'none'; });
+                if (!moviesArray || moviesArray.length === 0) { 
+                    grid.innerHTML = ''; 
+                    noResults.style.display = 'block'; 
+                    section.style.display = 'block'; 
+                    return; 
+                }
+                noResults.style.display = 'none'; 
+                this.displayMovies(moviesArray, 'search-results-grid'); 
+                section.style.display = 'block';
+                document.querySelectorAll('.section').forEach(section => { 
+                    if (section.id !== 'search-results' && !section.classList.contains('hidden')) 
+                        section.style.display = 'none'; 
+                });
             }
+
             hideSearchResults() {
-                const section = document.getElementById('search-results'); section.style.display = 'none';
-                document.querySelectorAll('.section').forEach(section => { if (!section.id.includes('section')) section.style.display = 'block'; });
+                const section = document.getElementById('search-results'); 
+                section.style.display = 'none';
+                document.querySelectorAll('.section').forEach(section => { 
+                    if (!section.id.includes('section')) 
+                        section.style.display = 'block'; 
+                });
             }
-            createMovieCard(movie) { if (!movie) return ''; const isInWatchlist = this.watchlist.some(m => m.id === movie.id); const posterUrl = movie.poster_path || movie.backdrop_path || movie.poster; const title = movie.title || movie.name || 'Unknown Title'; const overview = movie.overview || movie.description || 'No description available.'; const releaseDate = movie.release_date || movie.first_air_date; const year = releaseDate ? new Date(releaseDate).getFullYear() : 'N/A';
-                return \`<div class="movie-card" data-movie-id="\${movie.id}"><button class="watchlist-btn \${isInWatchlist ? 'active' : ''}" onclick="event.stopPropagation(); app.toggleWatchlist(\${JSON.stringify(movie).replace(/"/g, '&quot;')})"><i class="fas \${isInWatchlist ? 'fa-bookmark' : 'fa-bookmark'}"></i></button>\${posterUrl ? \`<img src="\${posterUrl}" alt="\${title}" class="movie-poster" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">\` : ''}<div class="poster-fallback" style="\${posterUrl ? 'display: none;' : ''}"><i class="fas fa-film"></i></div><div class="movie-info"><h3 class="movie-title">\${title}</h3><div class="movie-year">\${year}</div><p class="movie-description">\${overview.substring(0, 150)}...</p><div class="movie-actions"><button class="btn btn-watch" onclick="event.stopPropagation(); app.watchMovie(\${JSON.stringify(movie).replace(/"/g, '&quot;')})">Watch Now</button><button class="btn btn-download" onclick="event.stopPropagation(); app.downloadMovie(\${JSON.stringify(movie).replace(/"/g, '&quot;')})">Download</button></div></div></div>\`;
+
+            createMovieCard(movie) { 
+                if (!movie) return ''; 
+                const isInWatchlist = this.watchlist.some(m => m.subjectId === movie.subjectId); 
+                const posterUrl = movie.cover?.url || movie.thumbnail; 
+                const title = movie.title || 'Unknown Title'; 
+                const description = movie.description || ''; 
+                const releaseDate = movie.releaseDate;
+                const year = releaseDate ? new Date(releaseDate).getFullYear() : 'N/A';
+                
+                return \`
+                    <div class="movie-card" data-movie-id="\${movie.subjectId}">
+                        <button class="watchlist-btn \${isInWatchlist ? 'active' : ''}" 
+                                onclick="event.stopPropagation(); app.toggleWatchlist(\${JSON.stringify(movie).replace(/"/g, '&quot;')})">
+                            <i class="fas \${isInWatchlist ? 'fa-bookmark' : 'fa-bookmark'}"></i>
+                        </button>
+                        \${posterUrl ? 
+                            \`<img src="\${posterUrl}" alt="\${title}" class="movie-poster" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">\` : 
+                            ''
+                        }
+                        <div class="poster-fallback" style="\${posterUrl ? 'display: none;' : ''}">
+                            <i class="fas fa-film"></i>
+                        </div>
+                        <div class="movie-info">
+                            <h3 class="movie-title">\${title}</h3>
+                            <div class="movie-year">\${year}</div>
+                            <p class="movie-description">\${description.substring(0, 150)}\${description.length > 150 ? '...' : ''}</p>
+                            <div class="movie-actions">
+                                <button class="btn btn-watch" onclick="event.stopPropagation(); app.watchMovie(\${JSON.stringify(movie).replace(/"/g, '&quot;')})">Watch Now</button>
+                                <button class="btn btn-download" onclick="event.stopPropagation(); app.downloadMovie(\${JSON.stringify(movie).replace(/"/g, '&quot;')})">Download</button>
+                            </div>
+                        </div>
+                    </div>
+                \`;
             }
-            showMovieDetails(movie) { if (!movie) return; const modal = document.getElementById('movieModal'); const modalBody = document.getElementById('modalBody'); modalBody.innerHTML = this.createModalContent(movie); modal.style.display = 'block'; document.body.style.overflow = 'hidden'; }
-            createModalContent(movie) { const isInWatchlist = this.watchlist.some(m => m.id === movie.id); const posterUrl = movie.poster_path || movie.backdrop_path || movie.poster; const title = movie.title || movie.name || 'Unknown Title'; const overview = movie.overview || movie.description || 'No overview available.'; const releaseDate = movie.release_date || movie.first_air_date; const rating = movie.vote_average || 'N/A';
-                return \`<div class="modal-poster-container">\${posterUrl ? \`<img src="\${posterUrl}" alt="\${title}" class="modal-poster">\` : '<div class="poster-fallback" style="height: 400px;"><i class="fas fa-film"></i></div>'}</div><div class="modal-details"><h2>\${title}</h2><div class="modal-meta"><span>⭐ \${rating}/10</span><span>📅 \${releaseDate || 'Unknown'}</span><span>🎭 \${movie.genres ? movie.genres.map(g => g.name).join(', ') : (movie.genre_ids ? 'Various' : 'Movie')}</span></div><p class="modal-overview">\${overview}</p><div class="modal-actions"><button class="btn btn-watch" onclick="app.watchMovie(\${JSON.stringify(movie).replace(/"/g, '&quot;')})"><i class="fas fa-play"></i> Watch Now</button><button class="btn btn-download" onclick="app.downloadMovie(\${JSON.stringify(movie).replace(/"/g, '&quot;')})"><i class="fas fa-download"></i> Download</button><button class="btn \${isInWatchlist ? 'btn-delete' : ''}" onclick="app.toggleWatchlist(\${JSON.stringify(movie).replace(/"/g, '&quot;')})"><i class="fas \${isInWatchlist ? 'fa-bookmark' : 'fa-bookmark'}"></i> \${isInWatchlist ? 'Remove from Watchlist' : 'Add to Watchlist'}</button></div></div>\`;
+
+            async showMovieDetails(movie) { 
+                if (!movie) return; 
+                try {
+                    const movieInfo = await this.fetchMovieInfo(movie.subjectId);
+                    this.currentMovieDetails = movieInfo;
+                    
+                    const modal = document.getElementById('movieModal'); 
+                    const modalBody = document.getElementById('modalBody'); 
+                    modalBody.innerHTML = this.createModalContent(movieInfo); 
+                    modal.style.display = 'block'; 
+                    document.body.style.overflow = 'hidden';
+                } catch (error) {
+                    console.error('Error showing movie details:', error);
+                    alert('Failed to load movie details. Please try again.');
+                }
             }
-            closeModal() { const modal = document.getElementById('movieModal'); modal.style.display = 'none'; document.body.style.overflow = 'auto'; }
-            async watchMovie(movie) { const existing = this.continueWatching.find(m => m.id === movie.id); if (!existing) { this.continueWatching.unshift({ ...movie, progress: 0, timestamp: Date.now() }); if (this.continueWatching.length > 10) this.continueWatching.pop(); localStorage.setItem('bb_continue', JSON.stringify(this.continueWatching)); this.updateContinueWatching(); } alert(\`Now streaming: \${movie.title || movie.name}\\n\\nIn a production environment, this would open the video player.\`); }
-            async downloadMovie(movie) { try { this.showLoading(); await new Promise(resolve => setTimeout(resolve, 2000)); const downloadItem = { id: movie.id, title: movie.title || movie.name, thumbnail: movie.poster_path || movie.backdrop_path || movie.poster, fileSize: Math.floor(Math.random() * 500) + 100 + 'MB', downloadDate: new Date().toISOString(), fileUrl: '#', progress: 100 }; this.downloads.unshift(downloadItem); localStorage.setItem('bb_downloads', JSON.stringify(this.downloads)); this.updateDownloadsUI(); this.hideLoading(); alert(\`Successfully downloaded: \${movie.title || movie.name}\`); } catch (error) { console.error('Download error:', error); alert('Download failed. Please try again.'); this.hideLoading(); } }
-            toggleWatchlist(movie) { const index = this.watchlist.findIndex(m => m.id === movie.id); if (index > -1) this.watchlist.splice(index, 1); else this.watchlist.unshift(movie); localStorage.setItem('bb_watchlist', JSON.stringify(this.watchlist)); this.updateWatchlistUI(); this.updateUI(); }
-            showSection(section) { document.querySelectorAll('.nav-link').forEach(link => link.classList.remove('active')); document.querySelector(\`[data-section="\${section}"]\`).classList.add('active'); document.querySelectorAll('.section, #watchlist-section, #downloads-section, #about-section').forEach(el => el.classList.add('hidden')); this.currentSection = section; switch(section) { case 'home': document.querySelectorAll('.section').forEach(el => { if (!el.id.includes('section')) el.classList.remove('hidden'); }); break; case 'watchlist': document.getElementById('watchlist-section').classList.remove('hidden'); this.updateWatchlistUI(); break; case 'downloads': document.getElementById('downloads-section').classList.remove('hidden'); this.updateDownloadsUI(); break; case 'about': document.getElementById('about-section').classList.remove('hidden'); break; } }
-            updateWatchlistUI() { const container = document.getElementById('watchlist-grid'); const emptyState = document.getElementById('empty-watchlist'); if (this.watchlist.length === 0) { container.innerHTML = ''; emptyState.style.display = 'block'; return; } emptyState.style.display = 'none'; this.displayMovies(this.watchlist, 'watchlist-grid'); }
-            updateDownloadsUI() { const container = document.getElementById('downloads-list'); const emptyState = document.getElementById('empty-downloads'); if (this.downloads.length === 0) { container.innerHTML = ''; emptyState.style.display = 'block'; return; } emptyState.style.display = 'none'; container.innerHTML = this.downloads.map(download => \`<div class="download-item"><img src="\${download.thumbnail}" alt="\${download.title}" class="download-thumbnail" onerror="this.style.display='none'"><div class="download-info"><h4>\${download.title}</h4><p>Size: \${download.fileSize} • Downloaded: \${new Date(download.downloadDate).toLocaleDateString()}</p></div><div class="download-actions"><button class="btn btn-watch" onclick="app.watchOffline(\${JSON.stringify(download).replace(/"/g, '&quot;')})"><i class="fas fa-play"></i> Play</button><button class="btn btn-delete" onclick="app.deleteDownload(\${download.id})"><i class="fas fa-trash"></i></button></div></div>\`).join(''); }
-            updateContinueWatching() { const container = document.getElementById('continue-grid'); const section = document.getElementById('continue-watching'); if (this.continueWatching.length === 0) { section.style.display = 'none'; return; } section.style.display = 'block'; this.displayMovies(this.continueWatching, 'continue-grid'); }
-            deleteDownload(movieId) { this.downloads = this.downloads.filter(d => d.id !== movieId); localStorage.setItem('bb_downloads', JSON.stringify(this.downloads)); this.updateDownloadsUI(); }
-            watchOffline(download) { alert(\`Playing offline: \${download.title}\\n\\nIn a production environment, this would play the downloaded file.\`); }
-            updateUI() { document.querySelectorAll('.watchlist-btn').forEach(btn => { const movieId = btn.closest('.movie-card').dataset.movieId; const isInWatchlist = this.watchlist.some(m => m.id == movieId); btn.classList.toggle('active', isInWatchlist); btn.innerHTML = \`<i class="fas \${isInWatchlist ? 'fa-bookmark' : 'fa-bookmark'}"></i>\`; }); }
-            setupIntersectionObserver() { const observer = new IntersectionObserver((entries) => { entries.forEach(entry => { if (entry.isIntersecting) entry.target.classList.add('visible'); }); }, { threshold: 0.1 }); document.querySelectorAll('.section').forEach(section => observer.observe(section)); }
-            handleInfiniteScroll() { if (this.isLoading) return; const scrollTop = window.scrollY; const windowHeight = window.innerHeight; const documentHeight = document.documentElement.scrollHeight; if (scrollTop + windowHeight >= documentHeight - 500) this.loadMoreMovies(); }
-            async loadMoreMovies() { if (this.isLoading) return; this.isLoading = true; this.currentPage++; const searchQuery = document.getElementById('searchInput').value; if (searchQuery) { const data = await this.fetchMovies(searchQuery, this.currentPage); const movies = data.results || data; if (movies && movies.length > 0) this.appendMovies(movies, 'search-results-grid'); } else { const data = await this.fetchMovies('popular', this.currentPage); const movies = data.results || data; if (movies && movies.length > 0) this.appendMovies(movies, 'trending-grid'); } this.isLoading = false; }
-            appendMovies(movies, containerId) { const container = document.getElementById(containerId); if (!container || !movies) return; const moviesArray = Array.isArray(movies) ? movies : [movies]; const movieCards = moviesArray.map(movie => this.createMovieCard(movie)).join(''); container.innerHTML += movieCards; const newCards = container.querySelectorAll('.movie-card'); newCards.forEach((card, index) => { const globalIndex = container.children.length - moviesArray.length + index; card.addEventListener('click', () => { this.showMovieDetails(moviesArray[globalIndex]); }); }); }
+
+            createModalContent(movieInfo) { 
+                const movie = movieInfo.results.subject;
+                const isInWatchlist = this.watchlist.some(m => m.subjectId === movie.subjectId); 
+                const posterUrl = movie.cover?.url || movie.thumbnail; 
+                const title = movie.title || 'Unknown Title'; 
+                const description = movie.description || 'No overview available.'; 
+                const releaseDate = movie.releaseDate;
+                const rating = movie.imdbRatingValue || 'N/A';
+                const genre = movie.genre || 'Various';
+                const duration = movie.duration ? Math.floor(movie.duration / 60) + ' min' : 'N/A';
+                
+                return \`
+                    <div class="modal-poster-container">
+                        \${posterUrl ? 
+                            \`<img src="\${posterUrl}" alt="\${title}" class="modal-poster">\` : 
+                            '<div class="poster-fallback" style="height: 400px;"><i class="fas fa-film"></i></div>'
+                        }
+                    </div>
+                    <div class="modal-details">
+                        <h2>\${title}</h2>
+                        <div class="modal-meta">
+                            <span>⭐ \${rating}/10</span>
+                            <span>📅 \${releaseDate || 'Unknown'}</span>
+                            <span>⏱️ \${duration}</span>
+                            <span>🎭 \${genre}</span>
+                        </div>
+                        <p class="modal-overview">\${description}</p>
+                        <div class="quality-selector" id="qualitySelector" style="display: none;">
+                            <h4>Select Quality:</h4>
+                            <div class="quality-options" id="qualityOptions"></div>
+                        </div>
+                        <div class="modal-actions">
+                            <button class="btn btn-watch" onclick="app.watchMovie(\${JSON.stringify(movie).replace(/"/g, '&quot;')})">
+                                <i class="fas fa-play"></i> Watch Now
+                            </button>
+                            <button class="btn btn-download" onclick="app.showDownloadOptions('\${movie.subjectId}')">
+                                <i class="fas fa-download"></i> Download
+                            </button>
+                            <button class="btn \${isInWatchlist ? 'btn-delete' : ''}" onclick="app.toggleWatchlist(\${JSON.stringify(movie).replace(/"/g, '&quot;')})">
+                                <i class="fas \${isInWatchlist ? 'fa-bookmark' : 'fa-bookmark'}"></i> 
+                                \${isInWatchlist ? 'Remove from Watchlist' : 'Add to Watchlist'}
+                            </button>
+                        </div>
+                    </div>
+                \`;
+            }
+
+            async showDownloadOptions(movieId) {
+                try {
+                    const sources = await this.fetchDownloadSources(movieId);
+                    const qualitySelector = document.getElementById('qualitySelector');
+                    const qualityOptions = document.getElementById('qualityOptions');
+                    
+                    if (sources.results && sources.results.length > 0) {
+                        qualityOptions.innerHTML = sources.results.map(source => \`
+                            <button class="quality-btn" onclick="app.downloadMovieFile('\${source.download_url}', '\${source.quality}', '\${source.size}')">
+                                \${source.quality} (\${this.formatFileSize(source.size)})
+                            </button>
+                        \`).join('');
+                        qualitySelector.style.display = 'block';
+                    } else {
+                        alert('No download sources available for this movie.');
+                    }
+                } catch (error) {
+                    console.error('Error fetching download sources:', error);
+                    alert('Failed to load download options. Please try again.');
+                }
+            }
+
+            formatFileSize(bytes) {
+                if (!bytes) return 'Unknown size';
+                const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+                const i = Math.floor(Math.log(bytes) / Math.log(1024));
+                return Math.round(bytes / Math.pow(1024, i) * 100) / 100 + ' ' + sizes[i];
+            }
+
+            async downloadMovieFile(downloadUrl, quality, size) {
+                try {
+                    this.showLoading();
+                    // Create a temporary link to trigger download
+                    const link = document.createElement('a');
+                    link.href = downloadUrl;
+                    link.download = \`\${this.currentMovieDetails.results.subject.title} - \${quality}.mp4\`;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    
+                    // Add to downloads list
+                    const downloadItem = {
+                        id: this.currentMovieDetails.results.subject.subjectId,
+                        title: this.currentMovieDetails.results.subject.title,
+                        thumbnail: this.currentMovieDetails.results.subject.cover?.url,
+                        fileSize: size,
+                        quality: quality,
+                        downloadDate: new Date().toISOString(),
+                        fileUrl: downloadUrl
+                    };
+                    
+                    this.downloads.unshift(downloadItem);
+                    localStorage.setItem('bb_downloads', JSON.stringify(this.downloads));
+                    this.updateDownloadsUI();
+                    
+                    this.hideLoading();
+                    alert(\`Download started: \${this.currentMovieDetails.results.subject.title} (\${quality})\`);
+                    
+                } catch (error) {
+                    console.error('Download error:', error);
+                    alert('Download failed. Please try again.');
+                    this.hideLoading();
+                }
+            }
+
+            closeModal() { 
+                const modal = document.getElementById('movieModal'); 
+                modal.style.display = 'none'; 
+                document.body.style.overflow = 'auto'; 
+                this.currentMovieDetails = null;
+            }
+
+            async watchMovie(movie) { 
+                const existing = this.continueWatching.find(m => m.subjectId === movie.subjectId);
+                if (!existing) {
+                    this.continueWatching.unshift({
+                        ...movie,
+                        progress: 0,
+                        timestamp: Date.now()
+                    });
+                    if (this.continueWatching.length > 10) this.continueWatching.pop();
+                    localStorage.setItem('bb_continue', JSON.stringify(this.continueWatching));
+                    this.updateContinueWatching();
+                }
+                
+                // In a real implementation, this would stream the movie
+                // For demo, we'll show a message
+                alert(\`Now streaming: \${movie.title}\\n\\nIn a production environment, this would open the video player with the actual movie stream.\`);
+            }
+
+            toggleWatchlist(movie) {
+                const index = this.watchlist.findIndex(m => m.subjectId === movie.subjectId);
+                if (index > -1) {
+                    this.watchlist.splice(index, 1);
+                } else {
+                    this.watchlist.unshift(movie);
+                }
+                localStorage.setItem('bb_watchlist', JSON.stringify(this.watchlist));
+                this.updateWatchlistUI();
+                this.updateUI();
+            }
+
+            showSection(section) {
+                document.querySelectorAll('.nav-link').forEach(link => link.classList.remove('active'));
+                document.querySelector(\`[data-section="\${section}"]\`).classList.add('active');
+                document.querySelectorAll('.section, #watchlist-section, #downloads-section, #about-section').forEach(el => {
+                    el.classList.add('hidden');
+                });
+                this.currentSection = section;
+                switch(section) {
+                    case 'home':
+                        document.querySelectorAll('.section').forEach(el => {
+                            if (!el.id.includes('section')) {
+                                el.classList.remove('hidden');
+                            }
+                        });
+                        break;
+                    case 'watchlist':
+                        document.getElementById('watchlist-section').classList.remove('hidden');
+                        this.updateWatchlistUI();
+                        break;
+                    case 'downloads':
+                        document.getElementById('downloads-section').classList.remove('hidden');
+                        this.updateDownloadsUI();
+                        break;
+                    case 'about':
+                        document.getElementById('about-section').classList.remove('hidden');
+                        break;
+                }
+            }
+
+            updateWatchlistUI() {
+                const container = document.getElementById('watchlist-grid');
+                const emptyState = document.getElementById('empty-watchlist');
+                if (this.watchlist.length === 0) {
+                    container.innerHTML = '';
+                    emptyState.style.display = 'block';
+                    return;
+                }
+                emptyState.style.display = 'none';
+                this.displayMovies(this.watchlist, 'watchlist-grid');
+            }
+
+            updateDownloadsUI() {
+                const container = document.getElementById('downloads-list');
+                const emptyState = document.getElementById('empty-downloads');
+                if (this.downloads.length === 0) {
+                    container.innerHTML = '';
+                    emptyState.style.display = 'block';
+                    return;
+                }
+                emptyState.style.display = 'none';
+                container.innerHTML = this.downloads.map(download => \`
+                    <div class="download-item">
+                        <img src="\${download.thumbnail}" alt="\${download.title}" class="download-thumbnail" onerror="this.style.display='none'">
+                        <div class="download-info">
+                            <h4>\${download.title}</h4>
+                            <p>Quality: \${download.quality} • Size: \${this.formatFileSize(download.fileSize)}</p>
+                            <p>Downloaded: \${new Date(download.downloadDate).toLocaleDateString()}</p>
+                        </div>
+                        <div class="download-actions">
+                            <button class="btn btn-watch" onclick="app.watchOffline(\${JSON.stringify(download).replace(/"/g, '&quot;')})">
+                                <i class="fas fa-play"></i> Play
+                            </button>
+                            <button class="btn btn-delete" onclick="app.deleteDownload('\${download.id}')">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                \`).join('');
+            }
+
+            updateContinueWatching() {
+                const container = document.getElementById('continue-grid');
+                const section = document.getElementById('continue-watching');
+                if (this.continueWatching.length === 0) {
+                    section.style.display = 'none';
+                    return;
+                }
+                section.style.display = 'block';
+                this.displayMovies(this.continueWatching, 'continue-grid');
+            }
+
+            deleteDownload(movieId) {
+                this.downloads = this.downloads.filter(d => d.id !== movieId);
+                localStorage.setItem('bb_downloads', JSON.stringify(this.downloads));
+                this.updateDownloadsUI();
+            }
+
+            watchOffline(download) {
+                alert(\`Playing offline: \${download.title} (\${download.quality})\\n\\nIn a production environment, this would play the downloaded file.\`);
+            }
+
+            updateUI() {
+                document.querySelectorAll('.watchlist-btn').forEach(btn => {
+                    const movieId = btn.closest('.movie-card').dataset.movieId;
+                    const isInWatchlist = this.watchlist.some(m => m.subjectId == movieId);
+                    btn.classList.toggle('active', isInWatchlist);
+                    btn.innerHTML = \`<i class="fas \${isInWatchlist ? 'fa-bookmark' : 'fa-bookmark'}"></i>\`;
+                });
+            }
+
+            setupIntersectionObserver() {
+                const observer = new IntersectionObserver((entries) => {
+                    entries.forEach(entry => {
+                        if (entry.isIntersecting) entry.target.classList.add('visible');
+                    });
+                }, { threshold: 0.1 });
+                document.querySelectorAll('.section').forEach(section => observer.observe(section));
+            }
+
+            handleInfiniteScroll() {
+                if (this.isLoading) return;
+                const scrollTop = window.scrollY;
+                const windowHeight = window.innerHeight;
+                const documentHeight = document.documentElement.scrollHeight;
+                if (scrollTop + windowHeight >= documentHeight - 500) this.loadMoreMovies();
+            }
+
+            async loadMoreMovies() {
+                if (this.isLoading) return;
+                this.isLoading = true;
+                this.currentPage++;
+                const searchQuery = document.getElementById('searchInput').value;
+                if (searchQuery) {
+                    const data = await this.fetchMovies(searchQuery, this.currentPage);
+                    const movies = data.results.items || [];
+                    if (movies && movies.length > 0) this.appendMovies(movies, 'search-results-grid');
+                } else {
+                    const data = await this.fetchMovies('action', this.currentPage);
+                    const movies = data.results.items || [];
+                    if (movies && movies.length > 0) this.appendMovies(movies, 'trending-grid');
+                }
+                this.isLoading = false;
+            }
+
+            appendMovies(movies, containerId) {
+                const container = document.getElementById(containerId);
+                if (!container || !movies) return;
+                const moviesArray = Array.isArray(movies) ? movies : [movies];
+                const movieCards = moviesArray.map(movie => this.createMovieCard(movie)).join('');
+                container.innerHTML += movieCards;
+                const newCards = container.querySelectorAll('.movie-card');
+                newCards.forEach((card, index) => {
+                    const globalIndex = container.children.length - moviesArray.length + index;
+                    card.addEventListener('click', () => {
+                        this.showMovieDetails(moviesArray[globalIndex]);
+                    });
+                });
+            }
+
             showLoading() { document.getElementById('loadingSpinner').style.display = 'flex'; }
             hideLoading() { document.getElementById('loadingSpinner').style.display = 'none'; }
         }
+
         document.addEventListener('DOMContentLoaded', () => { window.app = new BBMovies(); });
     </script>
 </body>
@@ -321,6 +862,8 @@ app.get('*', (req, res) => {
 app.listen(PORT, () => {
     console.log(`🎬 BB Movies server running on port ${PORT}`);
     console.log(`🚀 Visit: http://localhost:${PORT}`);
-    console.log(`🔍 API Proxy: http://localhost:${PORT}/api/movies`);
+    console.log(`🔍 Search API: http://localhost:${PORT}/api/search/{query}`);
+    console.log(`📖 Info API: http://localhost:${PORT}/api/info/{id}`);
+    console.log(`💾 Sources API: http://localhost:${PORT}/api/sources/{id}`);
     console.log(`❤️  Health Check: http://localhost:${PORT}/health`);
 });
