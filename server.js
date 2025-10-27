@@ -14,7 +14,93 @@ app.use(express.json());
 // Serve static files from public directory (if any)
 app.use(express.static('public'));
 
-// API Proxy endpoints
+// Streaming endpoint - serves video files directly
+app.get('/api/stream/:movieId', async (req, res) => {
+    try {
+        const { movieId } = req.params;
+        const { quality = '720p' } = req.query;
+        
+        console.log(`🎬 Streaming request for movie ${movieId} at ${quality} quality`);
+        
+        // First get the download sources
+        const sourcesUrl = `https://movieapi.giftedtech.co.ke/api/sources/${movieId}`;
+        const sourcesResponse = await fetch(sourcesUrl, {
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                'Accept': 'application/json',
+            },
+            timeout: 10000
+        });
+        
+        if (!sourcesResponse.ok) {
+            throw new Error(`Sources API responded with status: ${sourcesResponse.status}`);
+        }
+        
+        const sourcesData = await sourcesResponse.json();
+        
+        if (!sourcesData.results || sourcesData.results.length === 0) {
+            throw new Error('No streaming sources available');
+        }
+        
+        // Find the requested quality or fallback to highest available
+        let streamUrl = null;
+        const qualityPriority = [quality, '720p', '480p', '360p'];
+        
+        for (const q of qualityPriority) {
+            const source = sourcesData.results.find(s => s.quality === q);
+            if (source) {
+                streamUrl = source.download_url;
+                console.log(`✅ Selected ${q} quality for streaming`);
+                break;
+            }
+        }
+        
+        if (!streamUrl) {
+            throw new Error('No suitable streaming quality found');
+        }
+        
+        // Proxy the video stream
+        const videoResponse = await fetch(streamUrl, {
+            headers: {
+                'Range': req.headers.range || 'bytes=0-',
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+            }
+        });
+        
+        if (!videoResponse.ok) {
+            throw new Error(`Video server responded with status: ${videoResponse.status}`);
+        }
+        
+        // Set appropriate headers for streaming
+        res.setHeader('Content-Type', 'video/mp4');
+        res.setHeader('Accept-Ranges', 'bytes');
+        res.setHeader('Cache-Control', 'no-cache');
+        
+        // Handle range requests for seeking
+        const range = req.headers.range;
+        if (range) {
+            const parts = range.replace(/bytes=/, "").split("-");
+            const start = parseInt(parts[0], 10);
+            const end = parts[1] ? parseInt(parts[1], 10) : null;
+            
+            res.setHeader('Content-Range', `bytes ${start}-${end || ''}`);
+            res.setHeader('Content-Length', end ? end - start + 1 : '');
+            res.status(206); // Partial Content
+        }
+        
+        // Pipe the video stream to the client
+        videoResponse.body.pipe(res);
+        
+    } catch (error) {
+        console.error('❌ Streaming Error:', error.message);
+        res.status(500).json({ 
+            error: 'Failed to stream movie',
+            details: error.message
+        });
+    }
+});
+
+// API Proxy endpoints (existing ones)
 app.get('/api/search/:query', async (req, res) => {
     try {
         const { query } = req.params;
@@ -51,7 +137,6 @@ app.get('/api/search/:query', async (req, res) => {
     }
 });
 
-// Get movie info by ID
 app.get('/api/info/:id', async (req, res) => {
     try {
         const { id } = req.params;
@@ -85,7 +170,6 @@ app.get('/api/info/:id', async (req, res) => {
     }
 });
 
-// Get download sources
 app.get('/api/sources/:id', async (req, res) => {
     try {
         const { id } = req.params;
@@ -136,7 +220,7 @@ app.get('/health', (req, res) => {
     });
 });
 
-// Serve the main HTML page
+// Serve the main HTML page with updated streaming functionality
 app.get('/', (req, res) => {
     const htmlContent = `
 <!DOCTYPE html>
@@ -155,6 +239,15 @@ app.get('/', (req, res) => {
             --glow: 0 0 20px rgba(229, 9, 20, 0.3);
         }
         body { font-family: 'Arial', sans-serif; background: var(--primary-bg); color: var(--text-primary); line-height: 1.6; }
+        
+        /* Video Player Styles */
+        .video-player-modal { display: none; position: fixed; z-index: 3000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.95); }
+        .video-player-container { position: relative; width: 90%; height: 80%; max-width: 1200px; margin: 2% auto; background: #000; border-radius: 8px; overflow: hidden; }
+        .video-player { width: 100%; height: 100%; background: #000; }
+        .player-controls { position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(transparent, rgba(0,0,0,0.8)); padding: 1rem; display: flex; align-items: center; gap: 1rem; }
+        .control-btn { background: rgba(229, 9, 20, 0.8); border: none; color: white; padding: 0.5rem 1rem; border-radius: 4px; cursor: pointer; transition: all 0.3s ease; }
+        .control-btn:hover { background: var(--accent-red); }
+        .close-player { position: absolute; top: 1rem; right: 1rem; background: rgba(0,0,0,0.7); border: none; color: white; width: 40px; height: 40px; border-radius: 50%; cursor: pointer; font-size: 1.2rem; }
         
         .navbar { position: fixed; top: 0; width: 100%; background: rgba(10, 10, 10, 0.95); backdrop-filter: blur(10px); z-index: 1000; padding: 1rem 0; border-bottom: 1px solid rgba(229, 9, 20, 0.3); }
         .nav-container { max-width: 1200px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; padding: 0 2rem; }
@@ -208,13 +301,6 @@ app.get('/', (req, res) => {
         .modal-overview { margin-bottom: 2rem; line-height: 1.6; }
         .modal-actions { display: flex; gap: 1rem; }
         
-        .downloads-list { display: grid; gap: 1rem; }
-        .download-item { background: var(--card-bg); padding: 1rem; border-radius: 8px; display: flex; align-items: center; gap: 1rem; border: 1px solid rgba(255, 255, 255, 0.1); }
-        .download-thumbnail { width: 80px; height: 120px; object-fit: cover; border-radius: 6px; }
-        .download-info { flex: 1; }
-        .download-actions { display: flex; gap: 0.5rem; }
-        .btn-delete { background: transparent; color: var(--accent-red); border: 1px solid var(--accent-red); }
-        
         .quality-selector { margin: 1rem 0; }
         .quality-options { display: flex; gap: 0.5rem; flex-wrap: wrap; }
         .quality-btn { padding: 0.5rem 1rem; border: 1px solid var(--accent-red); background: transparent; color: var(--text-primary); border-radius: 4px; cursor: pointer; transition: all 0.3s ease; }
@@ -240,6 +326,7 @@ app.get('/', (req, res) => {
             .movies-grid { grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 1rem; }
             .modal-body { grid-template-columns: 1fr; }
             .modal-content { margin: 5% auto; width: 95%; }
+            .video-player-container { width: 95%; height: 60%; }
         }
         @media (max-width: 480px) {
             .movies-grid { grid-template-columns: 1fr; }
@@ -249,6 +336,24 @@ app.get('/', (req, res) => {
     </style>
 </head>
 <body>
+    <!-- Video Player Modal -->
+    <div class="video-player-modal" id="videoPlayerModal">
+        <div class="video-player-container">
+            <button class="close-player" onclick="app.closeVideoPlayer()">&times;</button>
+            <video class="video-player" id="videoPlayer" controls>
+                Your browser does not support the video tag.
+            </video>
+            <div class="player-controls">
+                <button class="control-btn" onclick="app.togglePlayPause()">
+                    <i class="fas fa-play" id="playPauseIcon"></i>
+                </button>
+                <button class="control-btn" onclick="app.toggleFullscreen()">
+                    <i class="fas fa-expand"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
     <nav class="navbar">
         <div class="nav-container">
             <div class="nav-logo"><span class="bb-logo">BB</span><span class="movies-text">MOVIES</span></div>
@@ -329,6 +434,8 @@ app.get('/', (req, res) => {
                 this.downloads = JSON.parse(localStorage.getItem('bb_downloads')) || [];
                 this.continueWatching = JSON.parse(localStorage.getItem('bb_continue')) || [];
                 this.currentMovieDetails = null;
+                this.currentStreamUrl = null;
+                this.videoPlayer = null;
                 this.init();
             }
 
@@ -337,6 +444,7 @@ app.get('/', (req, res) => {
                 this.loadInitialData(); 
                 this.updateUI(); 
                 this.setupIntersectionObserver(); 
+                this.videoPlayer = document.getElementById('videoPlayer');
             }
 
             bindEvents() {
@@ -370,6 +478,15 @@ app.get('/', (req, res) => {
 
                 window.addEventListener('scroll', () => { 
                     this.handleInfiniteScroll(); 
+                });
+
+                // Video player events
+                this.videoPlayer.addEventListener('play', () => {
+                    document.getElementById('playPauseIcon').className = 'fas fa-pause';
+                });
+
+                this.videoPlayer.addEventListener('pause', () => {
+                    document.getElementById('playPauseIcon').className = 'fas fa-play';
                 });
             }
 
@@ -571,13 +688,17 @@ app.get('/', (req, res) => {
                             <span>🎭 \${genre}</span>
                         </div>
                         <p class="modal-overview">\${description}</p>
-                        <div class="quality-selector" id="qualitySelector" style="display: none;">
-                            <h4>Select Quality:</h4>
-                            <div class="quality-options" id="qualityOptions"></div>
+                        <div class="quality-selector" id="qualitySelector">
+                            <h4>Select Streaming Quality:</h4>
+                            <div class="quality-options" id="qualityOptions">
+                                <button class="quality-btn active" onclick="app.streamMovie('\${movie.subjectId}', '720p')">720p HD</button>
+                                <button class="quality-btn" onclick="app.streamMovie('\${movie.subjectId}', '480p')">480p SD</button>
+                                <button class="quality-btn" onclick="app.streamMovie('\${movie.subjectId}', '360p')">360p Low</button>
+                            </div>
                         </div>
                         <div class="modal-actions">
-                            <button class="btn btn-watch" onclick="app.watchMovie(\${JSON.stringify(movie).replace(/"/g, '&quot;')})">
-                                <i class="fas fa-play"></i> Watch Now
+                            <button class="btn btn-watch" onclick="app.streamMovie('\${movie.subjectId}', '720p')">
+                                <i class="fas fa-play"></i> Stream Now
                             </button>
                             <button class="btn btn-download" onclick="app.showDownloadOptions('\${movie.subjectId}')">
                                 <i class="fas fa-download"></i> Download
@@ -589,6 +710,77 @@ app.get('/', (req, res) => {
                         </div>
                     </div>
                 \`;
+            }
+
+            async streamMovie(movieId, quality) {
+                try {
+                    this.showLoading();
+                    
+                    // Update quality buttons
+                    document.querySelectorAll('.quality-btn').forEach(btn => btn.classList.remove('active'));
+                    event.target.classList.add('active');
+                    
+                    // Create streaming URL
+                    const streamUrl = \`/api/stream/\${movieId}?quality=\${quality}\`;
+                    
+                    // Show video player
+                    this.showVideoPlayer(streamUrl, this.currentMovieDetails.results.subject.title);
+                    
+                    this.hideLoading();
+                    
+                } catch (error) {
+                    console.error('Streaming error:', error);
+                    alert('Failed to start streaming. Please try again.');
+                    this.hideLoading();
+                }
+            }
+
+            showVideoPlayer(streamUrl, title) {
+                const videoPlayerModal = document.getElementById('videoPlayerModal');
+                const videoPlayer = document.getElementById('videoPlayer');
+                
+                // Set video source
+                videoPlayer.src = streamUrl;
+                videoPlayer.load();
+                
+                // Show modal
+                videoPlayerModal.style.display = 'block';
+                document.body.style.overflow = 'hidden';
+                
+                // Auto-play when ready
+                videoPlayer.addEventListener('loadeddata', () => {
+                    videoPlayer.play().catch(e => {
+                        console.log('Auto-play prevented:', e);
+                    });
+                });
+            }
+
+            closeVideoPlayer() {
+                const videoPlayerModal = document.getElementById('videoPlayerModal');
+                const videoPlayer = document.getElementById('videoPlayer');
+                
+                videoPlayer.pause();
+                videoPlayer.src = '';
+                videoPlayerModal.style.display = 'none';
+                document.body.style.overflow = 'auto';
+            }
+
+            togglePlayPause() {
+                if (this.videoPlayer.paused) {
+                    this.videoPlayer.play();
+                } else {
+                    this.videoPlayer.pause();
+                }
+            }
+
+            toggleFullscreen() {
+                if (!document.fullscreenElement) {
+                    this.videoPlayer.requestFullscreen().catch(err => {
+                        console.log('Fullscreen error:', err);
+                    });
+                } else {
+                    document.exitFullscreen();
+                }
             }
 
             async showDownloadOptions(movieId) {
@@ -603,7 +795,6 @@ app.get('/', (req, res) => {
                                 \${source.quality} (\${this.formatFileSize(source.size)})
                             </button>
                         \`).join('');
-                        qualitySelector.style.display = 'block';
                     } else {
                         alert('No download sources available for this movie.');
                     }
@@ -661,24 +852,6 @@ app.get('/', (req, res) => {
                 modal.style.display = 'none'; 
                 document.body.style.overflow = 'auto'; 
                 this.currentMovieDetails = null;
-            }
-
-            async watchMovie(movie) { 
-                const existing = this.continueWatching.find(m => m.subjectId === movie.subjectId);
-                if (!existing) {
-                    this.continueWatching.unshift({
-                        ...movie,
-                        progress: 0,
-                        timestamp: Date.now()
-                    });
-                    if (this.continueWatching.length > 10) this.continueWatching.pop();
-                    localStorage.setItem('bb_continue', JSON.stringify(this.continueWatching));
-                    this.updateContinueWatching();
-                }
-                
-                // In a real implementation, this would stream the movie
-                // For demo, we'll show a message
-                alert(\`Now streaming: \${movie.title}\\n\\nIn a production environment, this would open the video player with the actual movie stream.\`);
             }
 
             toggleWatchlist(movie) {
@@ -862,6 +1035,7 @@ app.get('*', (req, res) => {
 app.listen(PORT, () => {
     console.log(`🎬 BB Movies server running on port ${PORT}`);
     console.log(`🚀 Visit: http://localhost:${PORT}`);
+    console.log(`🎥 Streaming API: http://localhost:${PORT}/api/stream/{movieId}`);
     console.log(`🔍 Search API: http://localhost:${PORT}/api/search/{query}`);
     console.log(`📖 Info API: http://localhost:${PORT}/api/info/{id}`);
     console.log(`💾 Sources API: http://localhost:${PORT}/api/sources/{id}`);
