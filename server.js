@@ -14,93 +14,7 @@ app.use(express.json());
 // Serve static files from public directory (if any)
 app.use(express.static('public'));
 
-// Streaming endpoint - serves video files directly
-app.get('/api/stream/:movieId', async (req, res) => {
-    try {
-        const { movieId } = req.params;
-        const { quality = '720p' } = req.query;
-        
-        console.log(`🎬 Streaming request for movie ${movieId} at ${quality} quality`);
-        
-        // First get the download sources
-        const sourcesUrl = `https://movieapi.giftedtech.co.ke/api/sources/${movieId}`;
-        const sourcesResponse = await fetch(sourcesUrl, {
-            headers: {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-                'Accept': 'application/json',
-            },
-            timeout: 10000
-        });
-        
-        if (!sourcesResponse.ok) {
-            throw new Error(`Sources API responded with status: ${sourcesResponse.status}`);
-        }
-        
-        const sourcesData = await sourcesResponse.json();
-        
-        if (!sourcesData.results || sourcesData.results.length === 0) {
-            throw new Error('No streaming sources available');
-        }
-        
-        // Find the requested quality or fallback to highest available
-        let streamUrl = null;
-        const qualityPriority = [quality, '720p', '480p', '360p'];
-        
-        for (const q of qualityPriority) {
-            const source = sourcesData.results.find(s => s.quality === q);
-            if (source) {
-                streamUrl = source.download_url;
-                console.log(`✅ Selected ${q} quality for streaming`);
-                break;
-            }
-        }
-        
-        if (!streamUrl) {
-            throw new Error('No suitable streaming quality found');
-        }
-        
-        // Proxy the video stream
-        const videoResponse = await fetch(streamUrl, {
-            headers: {
-                'Range': req.headers.range || 'bytes=0-',
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-            }
-        });
-        
-        if (!videoResponse.ok) {
-            throw new Error(`Video server responded with status: ${videoResponse.status}`);
-        }
-        
-        // Set appropriate headers for streaming
-        res.setHeader('Content-Type', 'video/mp4');
-        res.setHeader('Accept-Ranges', 'bytes');
-        res.setHeader('Cache-Control', 'no-cache');
-        
-        // Handle range requests for seeking
-        const range = req.headers.range;
-        if (range) {
-            const parts = range.replace(/bytes=/, "").split("-");
-            const start = parseInt(parts[0], 10);
-            const end = parts[1] ? parseInt(parts[1], 10) : null;
-            
-            res.setHeader('Content-Range', `bytes ${start}-${end || ''}`);
-            res.setHeader('Content-Length', end ? end - start + 1 : '');
-            res.status(206); // Partial Content
-        }
-        
-        // Pipe the video stream to the client
-        videoResponse.body.pipe(res);
-        
-    } catch (error) {
-        console.error('❌ Streaming Error:', error.message);
-        res.status(500).json({ 
-            error: 'Failed to stream movie',
-            details: error.message
-        });
-    }
-});
-
-// API Proxy endpoints (existing ones)
+// API Proxy endpoints
 app.get('/api/search/:query', async (req, res) => {
     try {
         const { query } = req.params;
@@ -115,7 +29,7 @@ app.get('/api/search/:query', async (req, res) => {
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
                 'Accept': 'application/json',
             },
-            timeout: 10000
+            timeout: 15000
         });
         
         if (!response.ok) {
@@ -124,7 +38,7 @@ app.get('/api/search/:query', async (req, res) => {
         
         const data = await response.json();
         
-        console.log('✅ Search results received');
+        console.log('✅ Search results received:', data.results?.items?.length || 0, 'items');
         
         res.json(data);
     } catch (error) {
@@ -149,7 +63,7 @@ app.get('/api/info/:id', async (req, res) => {
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
                 'Accept': 'application/json',
             },
-            timeout: 10000
+            timeout: 15000
         });
         
         if (!response.ok) {
@@ -158,7 +72,7 @@ app.get('/api/info/:id', async (req, res) => {
         
         const data = await response.json();
         
-        console.log('✅ Movie info received');
+        console.log('✅ Movie info received for:', data.results?.subject?.title);
         
         res.json(data);
     } catch (error) {
@@ -190,7 +104,7 @@ app.get('/api/sources/:id', async (req, res) => {
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
                 'Accept': 'application/json',
             },
-            timeout: 10000
+            timeout: 15000
         });
         
         if (!response.ok) {
@@ -199,7 +113,7 @@ app.get('/api/sources/:id', async (req, res) => {
         
         const data = await response.json();
         
-        console.log('✅ Download sources received');
+        console.log('✅ Download sources received:', data.results?.length || 0, 'sources');
         
         res.json(data);
     } catch (error) {
@@ -211,16 +125,78 @@ app.get('/api/sources/:id', async (req, res) => {
     }
 });
 
+// Direct streaming - use the download URL directly
+app.get('/api/stream/:movieId', async (req, res) => {
+    try {
+        const { movieId } = req.params;
+        const { quality = '720p' } = req.query;
+        
+        console.log(`🎬 Getting streaming sources for movie ${movieId} at ${quality} quality`);
+        
+        // First get the download sources
+        const sourcesResponse = await fetch(`https://movieapi.giftedtech.co.ke/api/sources/${movieId}`, {
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                'Accept': 'application/json',
+            },
+            timeout: 15000
+        });
+        
+        if (!sourcesResponse.ok) {
+            throw new Error(`Sources API responded with status: ${sourcesResponse.status}`);
+        }
+        
+        const sourcesData = await sourcesResponse.json();
+        
+        if (!sourcesData.results || sourcesData.results.length === 0) {
+            throw new Error('No streaming sources available');
+        }
+        
+        // Find the requested quality or fallback to highest available
+        let streamUrl = null;
+        const qualityPriority = [quality, '720p', '480p', '360p'];
+        
+        for (const q of qualityPriority) {
+            const source = sourcesData.results.find(s => s.quality === q);
+            if (source) {
+                streamUrl = source.download_url;
+                console.log(`✅ Selected ${q} quality for streaming: ${streamUrl}`);
+                break;
+            }
+        }
+        
+        if (!streamUrl) {
+            throw new Error('No suitable streaming quality found');
+        }
+        
+        // Redirect to the actual video URL
+        res.redirect(streamUrl);
+        
+    } catch (error) {
+        console.error('❌ Streaming Error:', error.message);
+        res.status(500).json({ 
+            error: 'Failed to get streaming URL',
+            details: error.message
+        });
+    }
+});
+
 // Health check endpoint
 app.get('/health', (req, res) => {
     res.json({ 
         status: 'OK', 
         message: 'BB Movies server is running',
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        endpoints: {
+            search: '/api/search/{query}',
+            info: '/api/info/{id}',
+            sources: '/api/sources/{id}',
+            stream: '/api/stream/{id}'
+        }
     });
 });
 
-// Serve the main HTML page with updated streaming functionality
+// Serve the main HTML page
 app.get('/', (req, res) => {
     const htmlContent = `
 <!DOCTYPE html>
@@ -240,15 +216,180 @@ app.get('/', (req, res) => {
         }
         body { font-family: 'Arial', sans-serif; background: var(--primary-bg); color: var(--text-primary); line-height: 1.6; }
         
-        /* Video Player Styles */
-        .video-player-modal { display: none; position: fixed; z-index: 3000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.95); }
-        .video-player-container { position: relative; width: 90%; height: 80%; max-width: 1200px; margin: 2% auto; background: #000; border-radius: 8px; overflow: hidden; }
-        .video-player { width: 100%; height: 100%; background: #000; }
-        .player-controls { position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(transparent, rgba(0,0,0,0.8)); padding: 1rem; display: flex; align-items: center; gap: 1rem; }
-        .control-btn { background: rgba(229, 9, 20, 0.8); border: none; color: white; padding: 0.5rem 1rem; border-radius: 4px; cursor: pointer; transition: all 0.3s ease; }
-        .control-btn:hover { background: var(--accent-red); }
-        .close-player { position: absolute; top: 1rem; right: 1rem; background: rgba(0,0,0,0.7); border: none; color: white; width: 40px; height: 40px; border-radius: 50%; cursor: pointer; font-size: 1.2rem; }
+        /* Enhanced Loading Animations */
+        .search-loading {
+            display: none;
+            text-align: center;
+            padding: 2rem;
+            color: var(--accent-red);
+        }
         
+        .search-spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid rgba(229, 9, 20, 0.3);
+            border-top: 3px solid var(--accent-red);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+        
+        .pulse-loading {
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 0.6; }
+            50% { opacity: 1; }
+            100% { opacity: 0.6; }
+        }
+        
+        .skeleton-loader {
+            background: linear-gradient(90deg, #2a2a2a 25%, #333 50%, #2a2a2a 75%);
+            background-size: 200% 100%;
+            animation: loading 1.5s infinite;
+            border-radius: 8px;
+        }
+        
+        @keyframes loading {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+        
+        .skeleton-card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            overflow: hidden;
+            height: 500px;
+        }
+        
+        .skeleton-poster {
+            width: 100%;
+            height: 400px;
+            background: #333;
+        }
+        
+        .skeleton-content {
+            padding: 1.5rem;
+        }
+        
+        .skeleton-title {
+            height: 20px;
+            margin-bottom: 10px;
+            background: #333;
+        }
+        
+        .skeleton-text {
+            height: 12px;
+            margin-bottom: 8px;
+            background: #333;
+        }
+        
+        .skeleton-text.short {
+            width: 60%;
+        }
+        
+        /* Video Player Styles */
+        .video-player-modal { 
+            display: none; 
+            position: fixed; 
+            z-index: 3000; 
+            left: 0; 
+            top: 0; 
+            width: 100%; 
+            height: 100%; 
+            background: rgba(0, 0, 0, 0.95); 
+        }
+        
+        .video-player-container { 
+            position: relative; 
+            width: 90%; 
+            height: 80%; 
+            max-width: 1200px; 
+            margin: 2% auto; 
+            background: #000; 
+            border-radius: 8px; 
+            overflow: hidden; 
+            box-shadow: 0 0 50px rgba(229, 9, 20, 0.3);
+        }
+        
+        .video-player { 
+            width: 100%; 
+            height: 100%; 
+            background: #000; 
+            outline: none;
+        }
+        
+        .player-controls { 
+            position: absolute; 
+            bottom: 0; 
+            left: 0; 
+            right: 0; 
+            background: linear-gradient(transparent, rgba(0,0,0,0.8)); 
+            padding: 1rem; 
+            display: flex; 
+            align-items: center; 
+            gap: 1rem; 
+            transition: opacity 0.3s ease;
+        }
+        
+        .control-btn { 
+            background: rgba(229, 9, 20, 0.8); 
+            border: none; 
+            color: white; 
+            padding: 0.5rem 1rem; 
+            border-radius: 4px; 
+            cursor: pointer; 
+            transition: all 0.3s ease; 
+        }
+        
+        .control-btn:hover { 
+            background: var(--accent-red); 
+            transform: scale(1.05);
+        }
+        
+        .close-player { 
+            position: absolute; 
+            top: 1rem; 
+            right: 1rem; 
+            background: rgba(0,0,0,0.7); 
+            border: none; 
+            color: white; 
+            width: 40px; 
+            height: 40px; 
+            border-radius: 50%; 
+            cursor: pointer; 
+            font-size: 1.2rem; 
+            z-index: 3001;
+            transition: all 0.3s ease;
+        }
+        
+        .close-player:hover {
+            background: var(--accent-red);
+            transform: scale(1.1);
+        }
+        
+        .streaming-loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            color: white;
+            z-index: 3002;
+        }
+        
+        .streaming-spinner {
+            width: 60px;
+            height: 60px;
+            border: 4px solid rgba(229, 9, 20, 0.3);
+            border-top: 4px solid var(--accent-red);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+        
+        /* Existing styles remain the same */
         .navbar { position: fixed; top: 0; width: 100%; background: rgba(10, 10, 10, 0.95); backdrop-filter: blur(10px); z-index: 1000; padding: 1rem 0; border-bottom: 1px solid rgba(229, 9, 20, 0.3); }
         .nav-container { max-width: 1200px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; padding: 0 2rem; }
         .nav-logo { display: flex; align-items: center; gap: 0.5rem; }
@@ -297,16 +438,16 @@ app.get('/', (req, res) => {
         .modal-body { display: grid; grid-template-columns: 300px 1fr; gap: 2rem; }
         .modal-poster { width: 100%; border-radius: 8px; }
         .modal-details h2 { font-size: 2rem; margin-bottom: 1rem; }
-        .modal-meta { display: flex; gap: 1rem; margin-bottom: 1rem; color: var(--text-secondary); }
+        .modal-meta { display: flex; gap: 1rem; margin-bottom: 1rem; color: var(--text-secondary); flex-wrap: wrap; }
         .modal-overview { margin-bottom: 2rem; line-height: 1.6; }
-        .modal-actions { display: flex; gap: 1rem; }
+        .modal-actions { display: flex; gap: 1rem; flex-wrap: wrap; }
         
         .quality-selector { margin: 1rem 0; }
         .quality-options { display: flex; gap: 0.5rem; flex-wrap: wrap; }
         .quality-btn { padding: 0.5rem 1rem; border: 1px solid var(--accent-red); background: transparent; color: var(--text-primary); border-radius: 4px; cursor: pointer; transition: all 0.3s ease; }
         .quality-btn:hover, .quality-btn.active { background: var(--accent-red); color: white; }
         
-        .loading-spinner { display: flex; justify-content: center; align-items: center; padding: 2rem; }
+        .loading-spinner { display: none; justify-content: center; align-items: center; padding: 2rem; }
         .spinner { width: 50px; height: 50px; border: 4px solid rgba(229, 9, 20, 0.3); border-left: 4px solid var(--accent-red); border-radius: 50%; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         
@@ -327,6 +468,7 @@ app.get('/', (req, res) => {
             .modal-body { grid-template-columns: 1fr; }
             .modal-content { margin: 5% auto; width: 95%; }
             .video-player-container { width: 95%; height: 60%; }
+            .modal-actions { flex-direction: column; }
         }
         @media (max-width: 480px) {
             .movies-grid { grid-template-columns: 1fr; }
@@ -340,6 +482,10 @@ app.get('/', (req, res) => {
     <div class="video-player-modal" id="videoPlayerModal">
         <div class="video-player-container">
             <button class="close-player" onclick="app.closeVideoPlayer()">&times;</button>
+            <div class="streaming-loading" id="streamingLoading">
+                <div class="streaming-spinner"></div>
+                <p>Loading stream...</p>
+            </div>
             <video class="video-player" id="videoPlayer" controls>
                 Your browser does not support the video tag.
             </video>
@@ -381,24 +527,41 @@ app.get('/', (req, res) => {
     </section>
 
     <main class="main-content">
+        <!-- Search Loading Animation -->
+        <div class="search-loading" id="searchLoading">
+            <div class="search-spinner"></div>
+            <p>Searching for movies...</p>
+        </div>
+
         <section class="section" id="search-results" style="display: none;">
             <h2 class="section-title">Search Results</h2>
             <div class="movies-grid" id="search-results-grid"></div>
         </section>
+
         <section class="section" id="featured">
             <h2 class="section-title">BB Exclusives</h2>
             <div class="movies-grid" id="featured-grid"></div>
         </section>
+
         <section class="section" id="trending">
             <h2 class="section-title">Trending Now</h2>
             <div class="movies-grid" id="trending-grid"></div>
         </section>
+
         <section class="section" id="continue-watching" style="display: none;">
             <h2 class="section-title">Continue Watching</h2>
             <div class="movies-grid" id="continue-grid"></div>
         </section>
-        <div class="loading-spinner" id="loadingSpinner" style="display: none;"><div class="spinner"></div></div>
-        <div class="no-results" id="noResults" style="display: none;"><i class="fas fa-film"></i><h3>No movies found</h3><p>Try searching for something else</p></div>
+
+        <div class="loading-spinner" id="loadingSpinner">
+            <div class="spinner"></div>
+        </div>
+
+        <div class="no-results" id="noResults" style="display: none;">
+            <i class="fas fa-film"></i>
+            <h3>No movies found</h3>
+            <p>Try searching for something else</p>
+        </div>
     </main>
 
     <div class="modal" id="movieModal">
@@ -411,17 +574,28 @@ app.get('/', (req, res) => {
     <section class="section hidden" id="watchlist-section">
         <h2 class="section-title">My Watchlist</h2>
         <div class="movies-grid" id="watchlist-grid"></div>
-        <div class="empty-state" id="empty-watchlist"><i class="fas fa-bookmark"></i><h3>Your watchlist is empty</h3><p>Start adding movies to watch later</p></div>
+        <div class="empty-state" id="empty-watchlist">
+            <i class="fas fa-bookmark"></i>
+            <h3>Your watchlist is empty</h3>
+            <p>Start adding movies to watch later</p>
+        </div>
     </section>
 
     <section class="section hidden" id="downloads-section">
         <h2 class="section-title">My Downloads</h2>
         <div class="downloads-list" id="downloads-list"></div>
-        <div class="empty-state" id="empty-downloads"><i class="fas fa-download"></i><h3>No downloads yet</h3><p>Download movies to watch offline</p></div>
+        <div class="empty-state" id="empty-downloads">
+            <i class="fas fa-download"></i>
+            <h3>No downloads yet</h3>
+            <p>Download movies to watch offline</p>
+        </div>
     </section>
 
     <section class="section hidden" id="about-section">
-        <div class="about-content"><h2>About BB Movies</h2><p>Next-generation streaming platform with premium features including offline viewing, smart recommendations, and cinematic experience.</p></div>
+        <div class="about-content">
+            <h2>About BB Movies</h2>
+            <p>Next-generation streaming platform with premium features including offline viewing, smart recommendations, and cinematic experience.</p>
+        </div>
     </section>
 
     <script>
@@ -434,7 +608,6 @@ app.get('/', (req, res) => {
                 this.downloads = JSON.parse(localStorage.getItem('bb_downloads')) || [];
                 this.continueWatching = JSON.parse(localStorage.getItem('bb_continue')) || [];
                 this.currentMovieDetails = null;
-                this.currentStreamUrl = null;
                 this.videoPlayer = null;
                 this.init();
             }
@@ -450,11 +623,18 @@ app.get('/', (req, res) => {
             bindEvents() {
                 const searchInput = document.getElementById('searchInput'); 
                 let searchTimeout;
+                
                 searchInput.addEventListener('input', (e) => { 
+                    const query = e.target.value.trim();
                     clearTimeout(searchTimeout); 
+                    
+                    if (query) {
+                        this.showSearchLoading();
+                    }
+                    
                     searchTimeout = setTimeout(() => { 
-                        this.handleSearch(e.target.value); 
-                    }, 500); 
+                        this.handleSearch(query); 
+                    }, 800); 
                 });
 
                 document.querySelectorAll('.nav-link').forEach(link => { 
@@ -483,11 +663,42 @@ app.get('/', (req, res) => {
                 // Video player events
                 this.videoPlayer.addEventListener('play', () => {
                     document.getElementById('playPauseIcon').className = 'fas fa-pause';
+                    this.hideStreamingLoading();
                 });
 
                 this.videoPlayer.addEventListener('pause', () => {
                     document.getElementById('playPauseIcon').className = 'fas fa-play';
                 });
+
+                this.videoPlayer.addEventListener('waiting', () => {
+                    this.showStreamingLoading();
+                });
+
+                this.videoPlayer.addEventListener('canplay', () => {
+                    this.hideStreamingLoading();
+                });
+
+                this.videoPlayer.addEventListener('error', (e) => {
+                    console.error('Video player error:', e);
+                    this.hideStreamingLoading();
+                    alert('Error loading video. Please try a different quality or try again later.');
+                });
+            }
+
+            showSearchLoading() {
+                document.getElementById('searchLoading').style.display = 'block';
+            }
+
+            hideSearchLoading() {
+                document.getElementById('searchLoading').style.display = 'none';
+            }
+
+            showStreamingLoading() {
+                document.getElementById('streamingLoading').style.display = 'block';
+            }
+
+            hideStreamingLoading() {
+                document.getElementById('streamingLoading').style.display = 'none';
             }
 
             async loadInitialData() { 
@@ -502,8 +713,11 @@ app.get('/', (req, res) => {
                 try { 
                     this.showLoading(); 
                     const apiUrl = \`/api/search/\${encodeURIComponent(query)}?page=\${page}\`;
+                    console.log('Fetching from:', apiUrl);
+                    
                     const response = await fetch(apiUrl); 
                     if (!response.ok) throw new Error(\`HTTP error! status: \${response.status}\`);
+                    
                     const data = await response.json(); 
                     return data;
                 } catch (error) { 
@@ -511,6 +725,7 @@ app.get('/', (req, res) => {
                     return { results: { items: [] } }; 
                 } finally {
                     this.hideLoading(); 
+                    this.hideSearchLoading();
                 }
             }
 
@@ -549,30 +764,34 @@ app.get('/', (req, res) => {
             async handleSearch(query) { 
                 if (!query.trim()) { 
                     this.hideSearchResults(); 
+                    this.hideSearchLoading();
                     return; 
                 } 
+                
                 this.currentPage = 1; 
                 const data = await this.fetchMovies(query); 
-                this.displaySearchResults(data.results.items || [], query); 
+                this.displaySearchResults(data.results?.items || [], query); 
             }
 
             async loadFeaturedMovies() { 
                 const data = await this.fetchMovies('marvel'); 
-                const movies = data.results.items || []; 
+                const movies = data.results?.items || []; 
                 this.displayMovies(movies.slice(0, 8), 'featured-grid'); 
             }
 
             async loadTrendingMovies() { 
                 const data = await this.fetchMovies('action'); 
-                const movies = data.results.items || []; 
+                const movies = data.results?.items || []; 
                 this.displayMovies(movies.slice(0, 12), 'trending-grid'); 
             }
 
             displayMovies(movies, containerId) {
                 const container = document.getElementById(containerId); 
                 if (!container || !movies) return;
+                
                 const moviesArray = Array.isArray(movies) ? movies : [movies];
                 container.innerHTML = moviesArray.map(movie => this.createMovieCard(movie)).join('');
+                
                 container.querySelectorAll('.movie-card').forEach((card, index) => { 
                     card.addEventListener('click', () => { 
                         this.showMovieDetails(moviesArray[index]); 
@@ -585,15 +804,18 @@ app.get('/', (req, res) => {
                 const grid = document.getElementById('search-results-grid'); 
                 const noResults = document.getElementById('noResults');
                 const moviesArray = Array.isArray(movies) ? movies : (movies ? [movies] : []);
+                
                 if (!moviesArray || moviesArray.length === 0) { 
                     grid.innerHTML = ''; 
                     noResults.style.display = 'block'; 
                     section.style.display = 'block'; 
                     return; 
                 }
+                
                 noResults.style.display = 'none'; 
                 this.displayMovies(moviesArray, 'search-results-grid'); 
                 section.style.display = 'block';
+                
                 document.querySelectorAll('.section').forEach(section => { 
                     if (section.id !== 'search-results' && !section.classList.contains('hidden')) 
                         section.style.display = 'none'; 
@@ -637,7 +859,7 @@ app.get('/', (req, res) => {
                             <p class="movie-description">\${description.substring(0, 150)}\${description.length > 150 ? '...' : ''}</p>
                             <div class="movie-actions">
                                 <button class="btn btn-watch" onclick="event.stopPropagation(); app.watchMovie(\${JSON.stringify(movie).replace(/"/g, '&quot;')})">Watch Now</button>
-                                <button class="btn btn-download" onclick="event.stopPropagation(); app.downloadMovie(\${JSON.stringify(movie).replace(/"/g, '&quot;')})">Download</button>
+                                <button class="btn btn-download" onclick="event.stopPropagation(); app.showDownloadOptions('\${movie.subjectId}')">Download</button>
                             </div>
                         </div>
                     </div>
@@ -662,7 +884,9 @@ app.get('/', (req, res) => {
             }
 
             createModalContent(movieInfo) { 
-                const movie = movieInfo.results.subject;
+                const movie = movieInfo.results?.subject;
+                if (!movie) return '<div class="modal-details"><h2>Error loading movie details</h2></div>';
+                
                 const isInWatchlist = this.watchlist.some(m => m.subjectId === movie.subjectId); 
                 const posterUrl = movie.cover?.url || movie.thumbnail; 
                 const title = movie.title || 'Unknown Title'; 
@@ -688,9 +912,9 @@ app.get('/', (req, res) => {
                             <span>🎭 \${genre}</span>
                         </div>
                         <p class="modal-overview">\${description}</p>
-                        <div class="quality-selector" id="qualitySelector">
+                        <div class="quality-selector">
                             <h4>Select Streaming Quality:</h4>
-                            <div class="quality-options" id="qualityOptions">
+                            <div class="quality-options">
                                 <button class="quality-btn active" onclick="app.streamMovie('\${movie.subjectId}', '720p')">720p HD</button>
                                 <button class="quality-btn" onclick="app.streamMovie('\${movie.subjectId}', '480p')">480p SD</button>
                                 <button class="quality-btn" onclick="app.streamMovie('\${movie.subjectId}', '360p')">360p Low</button>
@@ -723,8 +947,10 @@ app.get('/', (req, res) => {
                     // Create streaming URL
                     const streamUrl = \`/api/stream/\${movieId}?quality=\${quality}\`;
                     
-                    // Show video player
-                    this.showVideoPlayer(streamUrl, this.currentMovieDetails.results.subject.title);
+                    console.log('Streaming URL:', streamUrl);
+                    
+                    // Show video player and start loading
+                    this.showVideoPlayer(streamUrl);
                     
                     this.hideLoading();
                     
@@ -735,9 +961,11 @@ app.get('/', (req, res) => {
                 }
             }
 
-            showVideoPlayer(streamUrl, title) {
+            showVideoPlayer(streamUrl) {
                 const videoPlayerModal = document.getElementById('videoPlayerModal');
                 const videoPlayer = document.getElementById('videoPlayer');
+                
+                this.showStreamingLoading();
                 
                 // Set video source
                 videoPlayer.src = streamUrl;
@@ -747,12 +975,13 @@ app.get('/', (req, res) => {
                 videoPlayerModal.style.display = 'block';
                 document.body.style.overflow = 'hidden';
                 
-                // Auto-play when ready
+                // Try to auto-play when ready
                 videoPlayer.addEventListener('loadeddata', () => {
                     videoPlayer.play().catch(e => {
-                        console.log('Auto-play prevented:', e);
+                        console.log('Auto-play prevented, user interaction required:', e);
+                        this.hideStreamingLoading();
                     });
-                });
+                }, { once: true });
             }
 
             closeVideoPlayer() {
@@ -763,6 +992,7 @@ app.get('/', (req, res) => {
                 videoPlayer.src = '';
                 videoPlayerModal.style.display = 'none';
                 document.body.style.overflow = 'auto';
+                this.hideStreamingLoading();
             }
 
             togglePlayPause() {
@@ -774,8 +1004,9 @@ app.get('/', (req, res) => {
             }
 
             toggleFullscreen() {
+                const playerContainer = document.querySelector('.video-player-container');
                 if (!document.fullscreenElement) {
-                    this.videoPlayer.requestFullscreen().catch(err => {
+                    playerContainer.requestFullscreen().catch(err => {
                         console.log('Fullscreen error:', err);
                     });
                 } else {
@@ -786,64 +1017,23 @@ app.get('/', (req, res) => {
             async showDownloadOptions(movieId) {
                 try {
                     const sources = await this.fetchDownloadSources(movieId);
-                    const qualitySelector = document.getElementById('qualitySelector');
-                    const qualityOptions = document.getElementById('qualityOptions');
-                    
                     if (sources.results && sources.results.length > 0) {
-                        qualityOptions.innerHTML = sources.results.map(source => \`
-                            <button class="quality-btn" onclick="app.downloadMovieFile('\${source.download_url}', '\${source.quality}', '\${source.size}')">
-                                \${source.quality} (\${this.formatFileSize(source.size)})
-                            </button>
-                        \`).join('');
+                        sources.results.forEach(source => {
+                            const link = document.createElement('a');
+                            link.href = source.download_url;
+                            link.download = \`\${this.currentMovieDetails.results.subject.title} - \${source.quality}.mp4\`;
+                            link.style.display = 'none';
+                            document.body.appendChild(link);
+                            link.click();
+                            document.body.removeChild(link);
+                        });
+                        alert('Download started! Check your browser downloads.');
                     } else {
                         alert('No download sources available for this movie.');
                     }
                 } catch (error) {
                     console.error('Error fetching download sources:', error);
                     alert('Failed to load download options. Please try again.');
-                }
-            }
-
-            formatFileSize(bytes) {
-                if (!bytes) return 'Unknown size';
-                const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-                const i = Math.floor(Math.log(bytes) / Math.log(1024));
-                return Math.round(bytes / Math.pow(1024, i) * 100) / 100 + ' ' + sizes[i];
-            }
-
-            async downloadMovieFile(downloadUrl, quality, size) {
-                try {
-                    this.showLoading();
-                    // Create a temporary link to trigger download
-                    const link = document.createElement('a');
-                    link.href = downloadUrl;
-                    link.download = \`\${this.currentMovieDetails.results.subject.title} - \${quality}.mp4\`;
-                    document.body.appendChild(link);
-                    link.click();
-                    document.body.removeChild(link);
-                    
-                    // Add to downloads list
-                    const downloadItem = {
-                        id: this.currentMovieDetails.results.subject.subjectId,
-                        title: this.currentMovieDetails.results.subject.title,
-                        thumbnail: this.currentMovieDetails.results.subject.cover?.url,
-                        fileSize: size,
-                        quality: quality,
-                        downloadDate: new Date().toISOString(),
-                        fileUrl: downloadUrl
-                    };
-                    
-                    this.downloads.unshift(downloadItem);
-                    localStorage.setItem('bb_downloads', JSON.stringify(this.downloads));
-                    this.updateDownloadsUI();
-                    
-                    this.hideLoading();
-                    alert(\`Download started: \${this.currentMovieDetails.results.subject.title} (\${quality})\`);
-                    
-                } catch (error) {
-                    console.error('Download error:', error);
-                    alert('Download failed. Please try again.');
-                    this.hideLoading();
                 }
             }
 
@@ -866,6 +1056,7 @@ app.get('/', (req, res) => {
                 this.updateUI();
             }
 
+            // ... rest of the methods remain the same as previous version
             showSection(section) {
                 document.querySelectorAll('.nav-link').forEach(link => link.classList.remove('active'));
                 document.querySelector(\`[data-section="\${section}"]\`).classList.add('active');
@@ -921,7 +1112,7 @@ app.get('/', (req, res) => {
                         <img src="\${download.thumbnail}" alt="\${download.title}" class="download-thumbnail" onerror="this.style.display='none'">
                         <div class="download-info">
                             <h4>\${download.title}</h4>
-                            <p>Quality: \${download.quality} • Size: \${this.formatFileSize(download.fileSize)}</p>
+                            <p>Quality: \${download.quality} • Size: \${download.fileSize}</p>
                             <p>Downloaded: \${new Date(download.downloadDate).toLocaleDateString()}</p>
                         </div>
                         <div class="download-actions">
@@ -990,11 +1181,11 @@ app.get('/', (req, res) => {
                 const searchQuery = document.getElementById('searchInput').value;
                 if (searchQuery) {
                     const data = await this.fetchMovies(searchQuery, this.currentPage);
-                    const movies = data.results.items || [];
+                    const movies = data.results?.items || [];
                     if (movies && movies.length > 0) this.appendMovies(movies, 'search-results-grid');
                 } else {
                     const data = await this.fetchMovies('action', this.currentPage);
-                    const movies = data.results.items || [];
+                    const movies = data.results?.items || [];
                     if (movies && movies.length > 0) this.appendMovies(movies, 'trending-grid');
                 }
                 this.isLoading = false;
@@ -1015,11 +1206,19 @@ app.get('/', (req, res) => {
                 });
             }
 
-            showLoading() { document.getElementById('loadingSpinner').style.display = 'flex'; }
-            hideLoading() { document.getElementById('loadingSpinner').style.display = 'none'; }
+            showLoading() { 
+                document.getElementById('loadingSpinner').style.display = 'flex'; 
+            }
+            
+            hideLoading() { 
+                document.getElementById('loadingSpinner').style.display = 'none'; 
+            }
         }
 
-        document.addEventListener('DOMContentLoaded', () => { window.app = new BBMovies(); });
+        document.addEventListener('DOMContentLoaded', () => { 
+            window.app = new BBMovies(); 
+            console.log('BB Movies initialized successfully!');
+        });
     </script>
 </body>
 </html>
@@ -1035,9 +1234,9 @@ app.get('*', (req, res) => {
 app.listen(PORT, () => {
     console.log(`🎬 BB Movies server running on port ${PORT}`);
     console.log(`🚀 Visit: http://localhost:${PORT}`);
-    console.log(`🎥 Streaming API: http://localhost:${PORT}/api/stream/{movieId}`);
     console.log(`🔍 Search API: http://localhost:${PORT}/api/search/{query}`);
     console.log(`📖 Info API: http://localhost:${PORT}/api/info/{id}`);
     console.log(`💾 Sources API: http://localhost:${PORT}/api/sources/{id}`);
+    console.log(`🎥 Streaming API: http://localhost:${PORT}/api/stream/{id}`);
     console.log(`❤️  Health Check: http://localhost:${PORT}/health`);
 });
