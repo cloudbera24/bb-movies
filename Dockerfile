@@ -1,21 +1,19 @@
-ROM node:20-alpine
+FROM node:20-alpine
 
 WORKDIR /app
 
-# Copy package files first (for better caching)
+# Copy package files
 COPY package*.json ./
+COPY .env ./
 
 # Install dependencies
-RUN npm install --production
+RUN npm install
 
-# Copy ALL source files
-COPY . .
-
-# Verify files are copied
-RUN ls -la
+# Copy source code
+COPY server.js ./
 
 # Expose port
 EXPOSE 3000
 
-# Start application
-CMD ["node", "server.js"]
+# Start the application
+CMD ["npm", "start"]
