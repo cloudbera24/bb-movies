@@ -61,7 +61,6 @@ app.get('/', (req, res) => {
             transition: all 0.3s ease;
         }
 
-        /* Splash Screen */
         .splash-screen {
             position: fixed;
             top: 0;
@@ -108,7 +107,6 @@ app.get('/', (req, res) => {
             to { opacity: 0; visibility: hidden; }
         }
 
-        /* Header */
         .header {
             position: fixed;
             top: 0;
@@ -191,7 +189,6 @@ app.get('/', (req, res) => {
             background: var(--primary-dark);
         }
 
-        /* Main Content */
         .main-content {
             margin-top: 80px;
             padding: 2rem;
@@ -258,7 +255,6 @@ app.get('/', (req, res) => {
             font-size: 0.8rem;
         }
 
-        /* Movie Modal */
         .modal {
             position: fixed;
             top: 0;
@@ -393,7 +389,6 @@ app.get('/', (req, res) => {
             box-shadow: var(--neon-glow);
         }
 
-        /* Video Player */
         .video-container {
             position: relative;
             width: 100%;
@@ -432,7 +427,6 @@ app.get('/', (req, res) => {
             backdrop-filter: blur(10px);
         }
 
-        /* Profile Panel */
         .profile-panel {
             position: fixed;
             top: 0;
@@ -501,7 +495,6 @@ app.get('/', (req, res) => {
             background: var(--primary);
         }
 
-        /* Install Prompt */
         .install-prompt {
             position: fixed;
             bottom: 20px;
@@ -521,7 +514,6 @@ app.get('/', (req, res) => {
             display: block;
         }
 
-        /* Loading */
         .loading {
             display: flex;
             justify-content: center;
@@ -543,30 +535,24 @@ app.get('/', (req, res) => {
             100% { transform: rotate(360deg); }
         }
 
-        /* Responsive */
         @media (max-width: 768px) {
             .search-input {
                 width: 200px;
             }
-            
             .nav-links {
                 gap: 1rem;
             }
-            
             .modal-header {
                 flex-direction: column;
             }
-            
             .modal-poster {
                 width: 150px;
                 height: 225px;
             }
-            
             .profile-panel {
                 width: 100%;
                 right: -100%;
             }
-            
             .movies-grid {
                 grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
             }
@@ -576,15 +562,12 @@ app.get('/', (req, res) => {
             .header {
                 padding: 1rem;
             }
-            
             .search-input {
                 width: 150px;
             }
-            
             .logo {
                 font-size: 1.5rem;
             }
-            
             .main-content {
                 padding: 1rem;
             }
@@ -592,13 +575,11 @@ app.get('/', (req, res) => {
     </style>
 </head>
 <body>
-    <!-- Splash Screen -->
     <div class="splash-screen">
         <div class="splash-logo">BB MOVIES</div>
         <div class="splash-subtitle">A BERA TECH CREATION</div>
     </div>
 
-    <!-- Header -->
     <header class="header">
         <div class="logo">BB</div>
         <nav class="nav-links">
@@ -614,9 +595,7 @@ app.get('/', (req, res) => {
         </nav>
     </header>
 
-    <!-- Main Content -->
     <main class="main-content">
-        <!-- Trending Section -->
         <section id="trending" class="section">
             <h2 class="section-title">🔥 Trending Now</h2>
             <div class="movies-grid" id="trendingGrid">
@@ -624,7 +603,6 @@ app.get('/', (req, res) => {
             </div>
         </section>
 
-        <!-- Watchlist Section -->
         <section id="watchlist" class="section" style="display: none;">
             <h2 class="section-title">❤️ My Watchlist</h2>
             <div class="movies-grid" id="watchlistGrid">
@@ -632,7 +610,6 @@ app.get('/', (req, res) => {
             </div>
         </section>
 
-        <!-- Downloads Section -->
         <section id="downloads" class="section" style="display: none;">
             <h2 class="section-title">💾 My Downloads</h2>
             <div class="movies-grid" id="downloadsGrid">
@@ -640,7 +617,6 @@ app.get('/', (req, res) => {
             </div>
         </section>
 
-        <!-- Continue Watching Section -->
         <section id="continue" class="section" style="display: none;">
             <h2 class="section-title">🎥 Continue Watching</h2>
             <div class="movies-grid" id="continueGrid">
@@ -648,14 +624,12 @@ app.get('/', (req, res) => {
             </div>
         </section>
 
-        <!-- Search Results -->
         <section id="searchResults" class="section" style="display: none;">
             <h2 class="section-title">🔍 Search Results</h2>
             <div class="movies-grid" id="searchResultsGrid"></div>
         </section>
     </main>
 
-    <!-- Movie Modal -->
     <div class="modal" id="movieModal">
         <div class="modal-content">
             <div class="modal-header">
@@ -669,33 +643,22 @@ app.get('/', (req, res) => {
                     </div>
                     <p class="modal-description" id="modalDescription">Movie description goes here...</p>
                     <div class="modal-actions">
-                        <button class="btn btn-primary" onclick="playMovie()">
-                            ▶️ Stream Now
-                        </button>
-                        <button class="btn btn-secondary" onclick="downloadMovie()">
-                            💾 Download
-                        </button>
-                        <button class="btn btn-secondary" onclick="toggleWatchlist()">
-                            ❤️ Add to Watchlist
-                        </button>
+                        <button class="btn btn-primary" onclick="playMovie()">▶️ Stream Now</button>
+                        <button class="btn btn-secondary" onclick="downloadMovie()">💾 Download</button>
+                        <button class="btn btn-secondary" onclick="toggleWatchlist()">❤️ Add to Watchlist</button>
                     </div>
                 </div>
             </div>
             <div class="modal-body">
-                <div class="quality-selector" id="qualitySelector" style="display: none;">
-                    <!-- Quality options will be populated here -->
-                </div>
+                <div class="quality-selector" id="qualitySelector" style="display: none;"></div>
                 <div class="video-container" id="videoContainer" style="display: none;">
-                    <video id="moviePlayer" controls>
-                        Your browser does not support the video tag.
-                    </video>
+                    <video id="moviePlayer" controls>Your browser does not support the video tag.</video>
                     <button class="cinema-exit" onclick="exitCinemaMode()" style="display: none;">✕</button>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Profile Panel -->
     <div class="profile-panel" id="profilePanel">
         <div class="profile-header">
             <img class="avatar" id="profileAvatar" src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgZmlsbD0iI2U1MDkxNCIvPjx0ZXh0IHg9IjEwMCIgeT0iMTAwIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iODAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIwLjM1ZW0iIGZpbGw9IiNmZmYiPlVzZXI8L3RleHQ+PC9zdmc+" alt="Avatar">
@@ -728,9 +691,7 @@ app.get('/', (req, res) => {
 
         <div class="profile-section">
             <h3>Favorite Genres</h3>
-            <div id="genrePreferences">
-                <!-- Genre checkboxes will be populated here -->
-            </div>
+            <div id="genrePreferences"></div>
         </div>
 
         <div class="profile-section">
@@ -739,7 +700,6 @@ app.get('/', (req, res) => {
         </div>
     </div>
 
-    <!-- Install Prompt -->
     <button class="install-prompt" id="installPrompt">📱 Install App</button>
 
     <script>
@@ -756,7 +716,6 @@ app.get('/', (req, res) => {
                 };
                 this.isListening = false;
                 this.recognition = null;
-                
                 this.init();
             }
 
@@ -776,7 +735,6 @@ app.get('/', (req, res) => {
                 searchInput.addEventListener('input', (e) => {
                     clearTimeout(searchTimeout);
                     const query = e.target.value.trim();
-                    
                     if (query.length > 2) {
                         searchTimeout = setTimeout(() => this.searchMovies(query), 500);
                     } else if (query.length === 0) {
@@ -815,7 +773,6 @@ app.get('/', (req, res) => {
 
             async loadTrendingMovies() {
                 try {
-                    // Use demo data if API fails
                     const demoMovies = [
                         {
                             id: 'demo1',
@@ -840,7 +797,6 @@ app.get('/', (req, res) => {
                         }
                     ];
 
-                    // Try to fetch from API first
                     try {
                         const response = await fetch('/api/search/avengers');
                         if (response.ok) {
@@ -851,30 +807,26 @@ app.get('/', (req, res) => {
                             }
                         }
                     } catch (apiError) {
-                        console.log('API failed, using demo data:', apiError);
+                        console.log('API failed, using demo data');
                     }
 
-                    // Fallback to demo data
                     this.displayMovies(demoMovies, 'trendingGrid');
                     
                 } catch (error) {
                     console.error('Error loading trending movies:', error);
-                    document.getElementById('trendingGrid').innerHTML = 
-                        '<div class="loading">Failed to load trending movies</div>';
+                    document.getElementById('trendingGrid').innerHTML = '<div class="loading">Failed to load trending movies</div>';
                 }
             }
 
             async searchMovies(query) {
                 try {
-                    document.getElementById('searchResultsGrid').innerHTML = 
-                        '<div class="loading"><div class="spinner"></div></div>';
-                    
+                    document.getElementById('searchResultsGrid').innerHTML = '<div class="loading"><div class="spinner"></div></div>';
                     this.showSearchResults();
                     
-                    const response = await fetch(\`/api/search/\${encodeURIComponent(query)}\`);
+                    const response = await fetch('/api/search/' + encodeURIComponent(query));
                     
                     if (!response.ok) {
-                        throw new Error(\`API responded with status: \${response.status}\`);
+                        throw new Error('API responded with status: ' + response.status);
                     }
                     
                     const data = await response.json();
@@ -882,13 +834,11 @@ app.get('/', (req, res) => {
                     if (data && data.results) {
                         this.displayMovies(data.results, 'searchResultsGrid');
                     } else {
-                        document.getElementById('searchResultsGrid').innerHTML = 
-                            '<div class="loading">No movies found</div>';
+                        document.getElementById('searchResultsGrid').innerHTML = '<div class="loading">No movies found</div>';
                     }
                 } catch (error) {
                     console.error('Error searching movies:', error);
-                    document.getElementById('searchResultsGrid').innerHTML = 
-                        '<div class="loading">Search failed - API not available</div>';
+                    document.getElementById('searchResultsGrid').innerHTML = '<div class="loading">Search failed - API not available</div>';
                 }
             }
 
@@ -900,28 +850,23 @@ app.get('/', (req, res) => {
                     return;
                 }
 
-                container.innerHTML = movies.map(movie => \`
-                    <div class="movie-card" onclick="app.showMovieInfo('\${movie.id}')">
-                        <img class="movie-poster" 
-                             src="\${movie.image || 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjMwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjMwMCIgZmlsbD0iIzJmMmYyZiIvPjx0ZXh0IHg9IjEwMCIgeT0iMTUwIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM4YzhjOGMiPk5vIEltYWdlPC90ZXh0Pjwvc3ZnPg=='}" 
-                             alt="\${movie.title}" 
-                             onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjMwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjMwMCIgZmlsbD0iIzJmMmYyZiIvPjx0ZXh0IHg9IjEwMCIgeT0iMTUwIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM4YzhjOGMiPk5vIEltYWdlPC90ZXh0Pjwvc3ZnPj=='">
-                        <div class="movie-info">
-                            <div class="movie-title">\${movie.title}</div>
-                            <div class="movie-year">\${movie.description || 'Movie'}</div>
-                        </div>
-                    </div>
-                \`).join('');
+                container.innerHTML = movies.map(movie => {
+                    return '<div class="movie-card" onclick="app.showMovieInfo(\\'' + movie.id + '\\')">' +
+                           '<img class="movie-poster" src="' + (movie.image || 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjMwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjMwMCIgZmlsbD0iIzJmMmYyZiIvPjx0ZXh0IHg9IjEwMCIgeT0iMTUwIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM4YzhjOGMiPk5vIEltYWdlPC90ZXh0Pjwvc3ZnPg==') + '" alt="' + movie.title + '">' +
+                           '<div class="movie-info">' +
+                           '<div class="movie-title">' + movie.title + '</div>' +
+                           '<div class="movie-year">' + (movie.description || 'Movie') + '</div>' +
+                           '</div></div>';
+                }).join('');
             }
 
             async showMovieInfo(movieId) {
                 try {
                     document.getElementById('movieModal').classList.add('active');
                     
-                    // Demo data for testing
                     const demoMovie = {
                         id: movieId,
-                        title: movieId.startsWith('demo') ? movieId.replace('demo', 'Demo Movie ') : 'Movie Title',
+                        title: movieId.startsWith('demo') ? 'Demo Movie ' + movieId.replace('demo', '') : 'Movie Title',
                         image: 'https://via.placeholder.com/300x450/333333/FFFFFF?text=Movie+Poster',
                         releaseDate: '2023',
                         rating: '8.5',
@@ -929,9 +874,8 @@ app.get('/', (req, res) => {
                         description: 'This is a demo movie description. In a real app, this would be fetched from the movie API.'
                     };
 
-                    // Try to fetch from API
                     try {
-                        const response = await fetch(\`/api/info/\${movieId}\`);
+                        const response = await fetch('/api/info/' + movieId);
                         if (response.ok) {
                             const movie = await response.json();
                             this.currentMovie = movie;
@@ -943,15 +887,13 @@ app.get('/', (req, res) => {
                         this.currentMovie = demoMovie;
                     }
                     
-                    // Update modal content
                     document.getElementById('modalPoster').src = this.currentMovie.image || '';
                     document.getElementById('modalTitle').textContent = this.currentMovie.title;
                     document.getElementById('modalYear').textContent = this.currentMovie.releaseDate || 'N/A';
-                    document.getElementById('modalRating').textContent = \`⭐ \${this.currentMovie.rating || 'N/A'}\`;
+                    document.getElementById('modalRating').textContent = '⭐ ' + (this.currentMovie.rating || 'N/A');
                     document.getElementById('modalGenre').textContent = this.currentMovie.genres ? this.currentMovie.genres.join(', ') : 'Unknown';
                     document.getElementById('modalDescription').textContent = this.currentMovie.description || 'No description available.';
                     
-                    // Update watchlist button
                     const isInWatchlist = this.watchlist.some(m => m.id === movieId);
                     const watchlistBtn = document.querySelector('.btn-secondary:nth-child(3)');
                     watchlistBtn.innerHTML = isInWatchlist ? '❤️ Remove from Watchlist' : '❤️ Add to Watchlist';
@@ -966,7 +908,6 @@ app.get('/', (req, res) => {
                 if (!this.currentMovie) return;
                 
                 try {
-                    // Demo video source
                     const demoSources = {
                         sources: [
                             {
@@ -978,9 +919,8 @@ app.get('/', (req, res) => {
 
                     let sources = demoSources;
                     
-                    // Try to fetch from API
                     try {
-                        const response = await fetch(\`/api/sources/\${this.currentMovie.id}\`);
+                        const response = await fetch('/api/sources/' + this.currentMovie.id);
                         if (response.ok) {
                             const apiSources = await response.json();
                             if (apiSources && apiSources.sources) {
@@ -996,24 +936,16 @@ app.get('/', (req, res) => {
                         const videoContainer = document.getElementById('videoContainer');
                         const qualitySelector = document.getElementById('qualitySelector');
                         
-                        // Show video container
                         videoContainer.style.display = 'block';
-                        
-                        // Set video source
-                        const bestQuality = sources.sources[0];
-                        videoPlayer.src = bestQuality.url;
+                        videoPlayer.src = sources.sources[0].url;
                         videoPlayer.load();
-                        
-                        // Set playback speed
                         videoPlayer.playbackRate = this.userPreferences.playbackSpeed;
                         
-                        // Load progress if exists
                         const progress = this.getPlaybackProgress(this.currentMovie.id);
                         if (progress > 0) {
                             videoPlayer.currentTime = progress;
                         }
                         
-                        // Show quality selector if multiple sources
                         if (sources.sources.length > 1) {
                             this.showQualitySelector(sources.sources);
                         }
@@ -1029,12 +961,9 @@ app.get('/', (req, res) => {
 
             showQualitySelector(sources) {
                 const container = document.getElementById('qualitySelector');
-                container.innerHTML = sources.map((source, index) => \`
-                    <button class="quality-btn \${index === 0 ? 'active' : ''}" 
-                            onclick="app.changeQuality('\${source.url}', this)">
-                        \${source.quality || 'Unknown'}
-                    </button>
-                \`).join('');
+                container.innerHTML = sources.map((source, index) => {
+                    return '<button class="quality-btn ' + (index === 0 ? 'active' : '') + '" onclick="app.changeQuality(\\'' + source.url + '\\', this)">' + (source.quality || 'Unknown') + '</button>';
+                }).join('');
                 container.style.display = 'flex';
             }
 
@@ -1054,7 +983,6 @@ app.get('/', (req, res) => {
                 if (!this.currentMovie) return;
                 
                 try {
-                    // Simulate download
                     const downloadInfo = {
                         ...this.currentMovie,
                         downloadDate: new Date().toISOString(),
@@ -1209,14 +1137,13 @@ app.get('/', (req, res) => {
                 const commonGenres = ['Action', 'Comedy', 'Drama', 'Horror', 'Sci-Fi', 'Romance', 'Thriller', 'Adventure'];
                 const container = document.getElementById('genrePreferences');
                 
-                container.innerHTML = commonGenres.map(genre => \`
-                    <label style="display: block; margin: 0.5rem 0;">
-                        <input type="checkbox" value="\${genre}" 
-                               \${this.userPreferences.favoriteGenres.includes(genre) ? 'checked' : ''}
-                               onchange="app.toggleGenre('\${genre}')">
-                        \${genre}
-                    </label>
-                \`).join('');
+                container.innerHTML = commonGenres.map(genre => {
+                    return '<label style="display: block; margin: 0.5rem 0;">' +
+                           '<input type="checkbox" value="' + genre + '" ' +
+                           (this.userPreferences.favoriteGenres.includes(genre) ? 'checked' : '') +
+                           ' onchange="app.toggleGenre(\\'' + genre + '\\')"> ' + genre +
+                           '</label>';
+                }).join('');
             }
 
             toggleGenre(genre) {
@@ -1390,13 +1317,13 @@ app.get('/', (req, res) => {
   `);
 });
 
-// API Proxy endpoints with better error handling
+// API Proxy endpoints
 app.get('/api/search/:query', async (req, res) => {
   try {
-    console.log(`🔍 Searching for: ${req.params.query}`);
-    const apiUrl = \`https://movieapi.giftedtech.co.ke/api/search/\${encodeURIComponent(req.params.query)}\`;
+    console.log('Searching for:', req.params.query);
+    const apiUrl = 'https://movieapi.giftedtech.co.ke/api/search/' + encodeURIComponent(req.params.query);
     
-    console.log(`🌐 Calling API: ${apiUrl}`);
+    console.log('Calling API:', apiUrl);
     
     const response = await fetch(apiUrl, {
       headers: {
@@ -1406,38 +1333,30 @@ app.get('/api/search/:query', async (req, res) => {
     });
     
     if (!response.ok) {
-      throw new Error(`API responded with status: ${response.status} ${response.statusText}`);
+      throw new Error('API responded with status: ' + response.status);
     }
     
     const data = await response.json();
-    console.log(`✅ Search successful, found: ${data.results ? data.results.length : 0} results`);
+    console.log('Search successful, found:', data.results ? data.results.length : 0, 'results');
     res.json(data);
     
   } catch (error) {
-    console.error('❌ Search error:', error.message);
+    console.error('Search error:', error.message);
     
-    // Return demo data if API fails
     const demoData = {
       results: [
         {
           id: 'demo-search-1',
-          title: \`Search: \${req.params.query}\`,
+          title: 'Search: ' + req.params.query,
           description: 'Demo search result 1',
           image: 'https://via.placeholder.com/300x450/333333/FFFFFF?text=Search+1',
           releaseDate: '2023'
         },
         {
           id: 'demo-search-2',
-          title: \`Movie about \${req.params.query}\`,
+          title: 'Movie about ' + req.params.query,
           description: 'Demo search result 2', 
           image: 'https://via.placeholder.com/300x450/333333/FFFFFF?text=Search+2',
-          releaseDate: '2023'
-        },
-        {
-          id: 'demo-search-3',
-          title: \`\${req.params.query} Adventure\`,
-          description: 'Demo search result 3',
-          image: 'https://via.placeholder.com/300x450/333333/FFFFFF?text=Search+3',
           releaseDate: '2023'
         }
       ]
@@ -1449,8 +1368,8 @@ app.get('/api/search/:query', async (req, res) => {
 
 app.get('/api/info/:id', async (req, res) => {
   try {
-    console.log(`🎬 Fetching info for ID: ${req.params.id}`);
-    const apiUrl = \`https://movieapi.giftedtech.co.ke/api/info/\${req.params.id}\`;
+    console.log('Fetching info for ID:', req.params.id);
+    const apiUrl = 'https://movieapi.giftedtech.co.ke/api/info/' + req.params.id;
     
     const response = await fetch(apiUrl, {
       headers: {
@@ -1460,27 +1379,24 @@ app.get('/api/info/:id', async (req, res) => {
     });
     
     if (!response.ok) {
-      throw new Error(`API responded with status: ${response.status}`);
+      throw new Error('API responded with status: ' + response.status);
     }
     
     const data = await response.json();
-    console.log(`✅ Info fetched for: ${data.title}`);
+    console.log('Info fetched for:', data.title);
     res.json(data);
     
   } catch (error) {
-    console.error('❌ Info error:', error.message);
+    console.error('Info error:', error.message);
     
-    // Return demo movie info
     const demoInfo = {
       id: req.params.id,
-      title: \`Movie \${req.params.id}\`,
-      description: 'This is a demo movie description. The actual movie API appears to be unavailable at the moment.',
+      title: 'Movie ' + req.params.id,
+      description: 'This is a demo movie description. The actual movie API appears to be unavailable.',
       image: 'https://via.placeholder.com/300x450/333333/FFFFFF?text=Movie+Poster',
       releaseDate: '2023',
       rating: '7.5',
-      genres: ['Action', 'Adventure'],
-      cast: ['Demo Actor 1', 'Demo Actor 2'],
-      director: 'Demo Director'
+      genres: ['Action', 'Adventure']
     };
     
     res.json(demoInfo);
@@ -1489,8 +1405,8 @@ app.get('/api/info/:id', async (req, res) => {
 
 app.get('/api/sources/:id', async (req, res) => {
   try {
-    console.log(`🎥 Fetching sources for ID: ${req.params.id}`);
-    const apiUrl = \`https://movieapi.giftedtech.co.ke/api/sources/\${req.params.id}\`;
+    console.log('Fetching sources for ID:', req.params.id);
+    const apiUrl = 'https://movieapi.giftedtech.co.ke/api/sources/' + req.params.id;
     
     const response = await fetch(apiUrl, {
       headers: {
@@ -1500,17 +1416,16 @@ app.get('/api/sources/:id', async (req, res) => {
     });
     
     if (!response.ok) {
-      throw new Error(`API responded with status: ${response.status}`);
+      throw new Error('API responded with status: ' + response.status);
     }
     
     const data = await response.json();
-    console.log(`✅ Sources fetched, available qualities: ${data.sources ? data.sources.length : 0}`);
+    console.log('Sources fetched, available qualities:', data.sources ? data.sources.length : 0);
     res.json(data);
     
   } catch (error) {
-    console.error('❌ Sources error:', error.message);
+    console.error('Sources error:', error.message);
     
-    // Return demo video sources
     const demoSources = {
       sources: [
         {
@@ -1540,11 +1455,11 @@ const ASSETS = [
 ];
 
 self.addEventListener("install", e => {
-  console.log("🟢 Service Worker Installing...");
+  console.log("Service Worker Installing...");
   e.waitUntil(
     caches.open(CACHE_NAME)
       .then(cache => {
-        console.log("📦 Caching app shell");
+        console.log("Caching app shell");
         return cache.addAll(ASSETS);
       })
       .then(() => self.skipWaiting())
@@ -1552,13 +1467,13 @@ self.addEventListener("install", e => {
 });
 
 self.addEventListener("activate", e => {
-  console.log("🔥 Service Worker Activated");
+  console.log("Service Worker Activated");
   e.waitUntil(
     caches.keys().then(keys => {
       return Promise.all(
         keys.map(key => {
           if (key !== CACHE_NAME) {
-            console.log("🗑️ Removing old cache:", key);
+            console.log("Removing old cache:", key);
             return caches.delete(key);
           }
         })
@@ -1588,32 +1503,10 @@ self.addEventListener("fetch", e => {
             return fetchResponse;
           })
           .catch(error => {
-            console.log("🚫 Fetch failed:", error);
+            console.log("Fetch failed:", error);
             return caches.match('/');
           });
       })
-  );
-});
-
-self.addEventListener("push", e => {
-  const options = {
-    body: "New trending movies available! 🎬",
-    icon: "/icons/icon-192.png",
-    badge: "/icons/icon-192.png",
-    vibrate: [100, 50, 100],
-    data: {
-      dateOfArrival: Date.now()
-    },
-    actions: [
-      {
-        action: "explore",
-        title: "Explore Movies"
-      }
-    ]
-  };
-
-  e.waitUntil(
-    self.registration.showNotification("BB Movies", options)
   );
 });
   `);
@@ -1680,9 +1573,7 @@ app.get('*', (req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`🎬 BB Movies Server running on port ${PORT}`);
-  console.log(`🚀 Powered by Bera Tech`);
-  console.log(`🌐 Environment: ${process.env.NODE_ENV || 'development'}`);
-  console.log(`🔗 Health check: http://localhost:${PORT}/health`);
-  console.log(`🔗 API Status: http://localhost:${PORT}/api/status`);
+  console.log('BB Movies Server running on port ' + PORT);
+  console.log('Powered by Bera Tech');
+  console.log('Environment: ' + (process.env.NODE_ENV || 'development'));
 });
