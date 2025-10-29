@@ -8,10 +8,10 @@ const fetch = require('node-fetch');
 const app = express();
 const PORT = process.env.PORT || 8080;
 
-// Supabase Configuration
+// Supabase Configuration with your credentials
 const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_ANON_KEY
+  'https://hfczrryqocgnmbkwemmu.supabase.co',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhmY3pycnlxb2Nnbm1ia3dlbW11Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE3MjAxMDQsImV4cCI6MjA3NzI5NjEwNH0.L7mltOW-QysNLyQ7vru87dntXqZCjdFRCEEL-Zwpwvw'
 );
 
 // Middleware
@@ -151,6 +151,24 @@ app.get('/', (req, res) => {
                     <button type="submit" id="authSubmit">Sign In</button>
                 </form>
                 <p id="authToggle">Don't have an account? <a href="#" id="toggleAuth">Sign Up</a></p>
+            </div>
+        </div>
+
+        <!-- Profile Modal -->
+        <div id="profileModal" class="modal hidden">
+            <div class="auth-content">
+                <span class="close-profile">&times;</span>
+                <h2>Your Profile</h2>
+                <div class="profile-info">
+                    <img id="profileAvatar" class="profile-avatar" src="" alt="Avatar">
+                    <input type="file" id="avatarUpload" accept="image/*">
+                    <input type="text" id="profileName" placeholder="Display Name">
+                    <select id="profileTheme">
+                        <option value="dark">Dark Theme</option>
+                        <option value="light">Light Theme</option>
+                    </select>
+                    <button id="saveProfile">Save Changes</button>
+                </div>
             </div>
         </div>
     </div>
@@ -447,7 +465,7 @@ body {
     position: relative;
 }
 
-.close-btn, .close-auth {
+.close-btn, .close-auth, .close-profile {
     position: absolute;
     top: 1rem;
     right: 1rem;
@@ -530,6 +548,102 @@ body {
     transition: width 0.1s;
 }
 
+/* Movie Details */
+.movie-details {
+    color: white;
+}
+
+.details-header {
+    display: flex;
+    gap: 2rem;
+    margin-bottom: 2rem;
+}
+
+.details-poster {
+    width: 300px;
+    height: 450px;
+    object-fit: cover;
+    border-radius: 10px;
+}
+
+.details-info {
+    flex: 1;
+}
+
+.details-info h2 {
+    font-size: 2.5rem;
+    margin-bottom: 1rem;
+    color: #fff;
+}
+
+.details-year {
+    color: #8B0000;
+    font-size: 1.2rem;
+    margin-bottom: 1rem;
+}
+
+.details-description {
+    line-height: 1.6;
+    margin-bottom: 2rem;
+    color: #ccc;
+}
+
+.details-actions {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.download-btn, .favorite-btn {
+    padding: 0.8rem 1.5rem;
+    border: none;
+    border-radius: 5px;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.download-btn {
+    background: #0066cc;
+    color: white;
+}
+
+.download-btn:hover {
+    background: #0052a3;
+}
+
+.favorite-btn {
+    background: #ff6b6b;
+    color: white;
+}
+
+.favorite-btn:hover {
+    background: #ff5252;
+}
+
+/* Profile Styles */
+.profile-info {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.profile-avatar {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    object-fit: cover;
+    align-self: center;
+}
+
+.profile-info input, .profile-info select {
+    padding: 1rem;
+    border: none;
+    border-radius: 5px;
+    background: rgba(255,255,255,0.1);
+    color: white;
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
     .nav-container {
@@ -552,6 +666,15 @@ body {
 
     .hero-actions {
         flex-direction: column;
+    }
+
+    .details-header {
+        flex-direction: column;
+    }
+
+    .details-poster {
+        width: 100%;
+        height: 400px;
     }
 }
 
@@ -648,7 +771,14 @@ const userMenu = document.getElementById('userMenu');
 const movieModal = document.getElementById('movieModal');
 const videoPlayer = document.getElementById('videoPlayer');
 const authModal = document.getElementById('authModal');
+const profileModal = document.getElementById('profileModal');
 const videoElement = document.getElementById('videoElement');
+
+// Supabase Client (using the same credentials as server)
+const supabaseUrl = 'https://hfczrryqocgnmbkwemmu.supabase.co';
+const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhmY3pycnlxb2Nnbm1ia3dlbW11Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE3MjAxMDQsImV4cCI6MjA3NzI5NjEwNH0.L7mltOW-QysNLyQ7vru87dntXqZCjdFRCEEL-Zwpwvw';
+
+const supabase = window.supabase = supabase.createClient(supabaseUrl, supabaseKey);
 
 // Initialize App
 document.addEventListener('DOMContentLoaded', async () => {
@@ -678,7 +808,14 @@ function setupEventListeners() {
     });
     voiceSearch.addEventListener('click', startVoiceSearch);
     authBtn.addEventListener('click', showAuthModal);
+    document.getElementById('logoutBtn').addEventListener('click', handleLogout);
+    document.getElementById('profileBtn').addEventListener('click', showProfileModal);
+    document.getElementById('saveProfile').addEventListener('click', saveProfile);
     window.addEventListener('scroll', handleScroll);
+    
+    // Auth form
+    document.getElementById('authForm').addEventListener('submit', handleAuth);
+    document.getElementById('toggleAuth').addEventListener('click', toggleAuthMode);
 }
 
 // Service Worker Registration
@@ -716,6 +853,74 @@ function updateAuthUI() {
 
 function showAuthModal() {
     authModal.classList.remove('hidden');
+}
+
+function showProfileModal() {
+    document.getElementById('profileName').value = currentUser.user_metadata?.name || '';
+    document.getElementById('profileTheme').value = localStorage.getItem('theme') || 'dark';
+    document.getElementById('profileAvatar').src = currentUser.user_metadata?.avatar_url || '/default-avatar.png';
+    profileModal.classList.remove('hidden');
+}
+
+async function handleAuth(event) {
+    event.preventDefault();
+    const email = document.getElementById('authEmail').value;
+    const password = document.getElementById('authPassword').value;
+    const isSignUp = document.getElementById('authSubmit').textContent === 'Sign Up';
+
+    try {
+        let result;
+        if (isSignUp) {
+            result = await supabase.auth.signUp({
+                email,
+                password,
+                options: {
+                    data: {
+                        name: email.split('@')[0],
+                        avatar_url: '/default-avatar.png'
+                    }
+                }
+            });
+        } else {
+            result = await supabase.auth.signInWithPassword({
+                email,
+                password
+            });
+        }
+
+        if (result.error) throw result.error;
+
+        currentUser = result.data.user;
+        updateAuthUI();
+        authModal.classList.add('hidden');
+        await syncUserData();
+        
+        alert(isSignUp ? 'Account created successfully!' : 'Signed in successfully!');
+    } catch (error) {
+        alert('Authentication error: ' + error.message);
+    }
+}
+
+async function handleLogout() {
+    await supabase.auth.signOut();
+    currentUser = null;
+    updateAuthUI();
+    alert('Signed out successfully!');
+}
+
+function toggleAuthMode() {
+    const authSubmit = document.getElementById('authSubmit');
+    const authToggle = document.getElementById('authToggle');
+    
+    if (authSubmit.textContent === 'Sign In') {
+        authSubmit.textContent = 'Sign Up';
+        authToggle.innerHTML = 'Already have an account? <a href="#" id="toggleAuth">Sign In</a>';
+    } else {
+        authSubmit.textContent = 'Sign In';
+        authToggle.innerHTML = 'Don\\'t have an account? <a href="#" id="toggleAuth">Sign Up</a>';
+    }
+    
+    document.getElementById('toggleAuth').addEventListener('click', toggleAuthMode);
 }
 
 // Movie API Functions
@@ -758,6 +963,7 @@ function setHeroMovie(movie) {
     const heroTitle = document.getElementById('heroTitle');
     const heroDescription = document.getElementById('heroDescription');
     const heroPlayBtn = document.getElementById('heroPlayBtn');
+    const heroInfoBtn = document.getElementById('heroInfoBtn');
     
     if (movie.background || movie.poster) {
         heroBackground.style.backgroundImage = 'url(' + (movie.background || movie.poster) + ')';
@@ -767,6 +973,7 @@ function setHeroMovie(movie) {
     heroDescription.textContent = movie.description || 'Premium streaming experience';
     
     heroPlayBtn.onclick = () => playMovie(movie);
+    heroInfoBtn.onclick = () => showMovieDetails(movie);
 }
 
 function displayMovies(movies, containerId) {
@@ -777,7 +984,7 @@ function displayMovies(movies, containerId) {
         '<div class="movie-card" onclick="showMovieDetails(' + JSON.stringify(movie).replace(/"/g, '&quot;') + ')">' +
         '<img src="' + (movie.poster || '/placeholder.jpg') + '" alt="' + movie.title + '" class="movie-poster" onerror="this.src=\\'/placeholder.jpg\\'">' +
         '<div class="movie-info">' +
-        '<h3 class="movie-title">' + movie.title + '</h3>' +
+        '<h3 class="movie-title">' + (movie.title || 'Unknown Title') + '</h3>' +
         '<p class="movie-year">' + (movie.year || '') + '</p>' +
         '</div>' +
         '</div>'
@@ -813,29 +1020,30 @@ function displaySearchResults(movies) {
 function showMovieDetails(movie) {
     const modalContent = document.getElementById('modalContent');
     
-    modalContent.innerHTML = '
+    modalContent.innerHTML = \`
         <div class="movie-details">
             <div class="details-header">
-                <img src="' + (movie.poster || '/placeholder.jpg') + '" alt="' + movie.title + '" class="details-poster">
+                <img src="\${movie.poster || '/placeholder.jpg'}" alt="\${movie.title}" class="details-poster" onerror="this.src='/placeholder.jpg'">
                 <div class="details-info">
-                    <h2>' + movie.title + '</h2>
-                    <p class="details-year">' + (movie.year || '') + '</p>
-                    <p class="details-description">' + (movie.description || 'No description available') + '</p>
+                    <h2>\${movie.title || 'Unknown Title'}</h2>
+                    <p class="details-year">\${movie.year || ''}</p>
+                    <p class="details-description">\${movie.description || 'No description available'}</p>
                     <div class="details-actions">
-                        <button class="play-btn" onclick="playMovie(' + JSON.stringify(movie).replace(/"/g, '&quot;') + ')">▶ Play</button>
-                        <button class="download-btn" onclick="downloadMovie(' + JSON.stringify(movie).replace(/"/g, '&quot;') + ')">⬇ Download</button>
-                        <button class="favorite-btn" onclick="addToWatchlist(' + JSON.stringify(movie).replace(/"/g, '&quot;') + ')">❤ Add to Watchlist</button>
+                        <button class="play-btn" onclick="playMovie(\${JSON.stringify(movie).replace(/"/g, '&quot;')})">▶ Play</button>
+                        <button class="download-btn" onclick="downloadMovie(\${JSON.stringify(movie).replace(/"/g, '&quot;')})">⬇ Download</button>
+                        <button class="favorite-btn" onclick="addToWatchlist(\${JSON.stringify(movie).replace(/"/g, '&quot;')})">❤ Add to Watchlist</button>
                     </div>
                 </div>
             </div>
         </div>
-    ';
+    \`;
     
     movieModal.classList.remove('hidden');
 }
 
 async function playMovie(movie) {
     try {
+        showLoading('Loading movie...');
         const response = await fetch('/api/movies/sources/' + movie.id);
         const data = await response.json();
         
@@ -857,16 +1065,24 @@ async function playMovie(movie) {
                 updateProgressBar(movie.id, videoElement.currentTime, videoElement.duration);
             };
             
-            videoElement.play();
+            await videoElement.play();
+            
+            // Save to watch history
+            await saveToWatchHistory(movie);
+        } else {
+            throw new Error('No video sources available');
         }
     } catch (error) {
         console.error('Error playing movie:', error);
         alert('Error loading movie. Please try again.');
+    } finally {
+        hideLoading();
     }
 }
 
 async function downloadMovie(movie) {
     try {
+        showLoading('Preparing download...');
         const response = await fetch('/api/movies/sources/' + movie.id);
         const data = await response.json();
         
@@ -874,14 +1090,22 @@ async function downloadMovie(movie) {
             const downloadUrl = data.sources[0].url;
             const link = document.createElement('a');
             link.href = downloadUrl;
-            link.download = movie.title + '.mp4';
+            link.download = (movie.title || 'movie') + '.mp4';
+            document.body.appendChild(link);
             link.click();
+            document.body.removeChild(link);
             
             // Save download record
             saveDownload(movie);
+            alert('Download started!');
+        } else {
+            throw new Error('No download sources available');
         }
     } catch (error) {
         console.error('Error downloading movie:', error);
+        alert('Error downloading movie. Please try again.');
+    } finally {
+        hideLoading();
     }
 }
 
@@ -917,12 +1141,131 @@ function startVoiceSearch() {
     recognition.start();
 }
 
+// User Data Management
+async function loadUserData() {
+    if (!currentUser) return;
+    
+    try {
+        // Load user preferences from Supabase
+        const { data: preferences } = await supabase
+            .from('user_preferences')
+            .select('*')
+            .eq('user_id', currentUser.id)
+            .single();
+            
+        if (preferences) {
+            // Apply user preferences
+            if (preferences.theme) {
+                document.body.setAttribute('data-theme', preferences.theme);
+            }
+        }
+        
+        // Sync local data with Supabase
+        await syncUserData();
+    } catch (error) {
+        console.error('Error loading user data:', error);
+    }
+}
+
+async function syncUserData() {
+    if (!currentUser) return;
+    
+    try {
+        // Upload watch history to Supabase
+        if (watchHistory.length > 0) {
+            const { error } = await supabase
+                .from('watch_history')
+                .upsert(watchHistory.map(item => ({
+                    ...item,
+                    user_id: currentUser.id,
+                    updated_at: new Date().toISOString()
+                })));
+                
+            if (error) throw error;
+        }
+        
+        // Upload watchlist to Supabase
+        if (watchlist.length > 0) {
+            const { error } = await supabase
+                .from('watchlist')
+                .upsert(watchlist.map(item => ({
+                    movie_id: item.id,
+                    user_id: currentUser.id,
+                    movie_data: item,
+                    added_at: new Date().toISOString()
+                })));
+                
+            if (error) throw error;
+        }
+    } catch (error) {
+        console.error('Error syncing user data:', error);
+    }
+}
+
+async function saveProfile() {
+    const name = document.getElementById('profileName').value;
+    const theme = document.getElementById('profileTheme').value;
+    
+    try {
+        // Update user metadata
+        const { error } = await supabase.auth.updateUser({
+            data: { name: name }
+        });
+        
+        if (error) throw error;
+        
+        // Save preferences to Supabase
+        const { error: prefError } = await supabase
+            .from('user_preferences')
+            .upsert({
+                user_id: currentUser.id,
+                theme: theme,
+                updated_at: new Date().toISOString()
+            });
+            
+        if (prefError) throw prefError;
+        
+        // Apply theme
+        document.body.setAttribute('data-theme', theme);
+        localStorage.setItem('theme', theme);
+        
+        profileModal.classList.add('hidden');
+        alert('Profile updated successfully!');
+    } catch (error) {
+        alert('Error updating profile: ' + error.message);
+    }
+}
+
+async function saveToWatchHistory(movie) {
+    if (!currentUser) return;
+    
+    try {
+        const { error } = await supabase
+            .from('watch_history')
+            .upsert({
+                user_id: currentUser.id,
+                movie_id: movie.id,
+                movie_data: movie,
+                last_watched: new Date().toISOString(),
+                updated_at: new Date().toISOString()
+            });
+            
+        if (error) console.error('Error saving watch history:', error);
+    } catch (error) {
+        console.error('Error saving to watch history:', error);
+    }
+}
+
 // Local Storage Management
 function loadFromLocalStorage() {
     try {
         watchHistory = JSON.parse(localStorage.getItem('watchHistory')) || [];
         downloads = JSON.parse(localStorage.getItem('downloads')) || [];
         watchlist = JSON.parse(localStorage.getItem('watchlist')) || [];
+        
+        // Load theme
+        const theme = localStorage.getItem('theme') || 'dark';
+        document.body.setAttribute('data-theme', theme);
         
         updateContinueWatching();
         updateDownloadsSection();
@@ -993,6 +1336,17 @@ function addToWatchlist(movie) {
         watchlist.push(movie);
         saveToLocalStorage();
         updateWatchlistSection();
+        
+        // Save to Supabase if user is logged in
+        if (currentUser) {
+            supabase.from('watchlist').upsert({
+                user_id: currentUser.id,
+                movie_id: movie.id,
+                movie_data: movie,
+                added_at: new Date().toISOString()
+            });
+        }
+        
         alert('Added to watchlist!');
     } else {
         alert('Already in watchlist!');
@@ -1026,6 +1380,36 @@ function updateWatchlistSection() {
     }
 }
 
+// Utility Functions
+function showLoading(message) {
+    // Simple loading indicator
+    const loading = document.createElement('div');
+    loading.id = 'loading';
+    loading.style.cssText = \`
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.8);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 9999;
+        color: white;
+        font-size: 1.2rem;
+    \`;
+    loading.textContent = message;
+    document.body.appendChild(loading);
+}
+
+function hideLoading() {
+    const loading = document.getElementById('loading');
+    if (loading) {
+        loading.remove();
+    }
+}
+
 // Event Handlers
 function handleSearch() {
     const query = searchInput.value.trim();
@@ -1051,6 +1435,9 @@ window.onclick = (event) => {
     if (event.target === authModal) {
         authModal.classList.add('hidden');
     }
+    if (event.target === profileModal) {
+        profileModal.classList.add('hidden');
+    }
     if (event.target === videoPlayer) {
         videoPlayer.classList.add('hidden');
         videoElement.pause();
@@ -1060,10 +1447,16 @@ window.onclick = (event) => {
 // Close buttons
 document.querySelector('.close-btn').onclick = () => movieModal.classList.add('hidden');
 document.querySelector('.close-auth').onclick = () => authModal.classList.add('hidden');
+document.querySelector('.close-profile').onclick = () => profileModal.classList.add('hidden');
 document.getElementById('closePlayer').onclick = () => {
     videoPlayer.classList.add('hidden');
     videoElement.pause();
 };
+
+// Cinema Mode
+document.getElementById('cinemaBtn').addEventListener('click', () => {
+    videoElement.requestFullscreen();
+});
 
 // Export functions to global scope
 window.showMovieDetails = showMovieDetails;
@@ -1135,7 +1528,7 @@ app.get('/manifest.json', (req, res) => {
 // API Routes
 app.get('/api/movies/trending', async (req, res) => {
   try {
-    const response = await fetch(`${MOVIE_API_BASE}/search/?q=action`);
+    const response = await fetch(\`${MOVIE_API_BASE}/search/?q=action\`);
     const data = await response.json();
     res.json({ movies: data.movies || [] });
   } catch (error) {
@@ -1151,7 +1544,7 @@ app.get('/api/movies/search', async (req, res) => {
       return res.status(400).json({ error: 'Query parameter required' });
     }
 
-    const response = await fetch(`${MOVIE_API_BASE}/search/?q=${encodeURIComponent(query)}`);
+    const response = await fetch(\`${MOVIE_API_BASE}/search/?q=\${encodeURIComponent(query)}\`);
     const data = await response.json();
     res.json({ movies: data.movies || [] });
   } catch (error) {
@@ -1163,7 +1556,7 @@ app.get('/api/movies/search', async (req, res) => {
 app.get('/api/movies/sources/:id', async (req, res) => {
   try {
     const movieId = req.params.id;
-    const response = await fetch(`${MOVIE_API_BASE}/sources/${movieId}`);
+    const response = await fetch(\`${MOVIE_API_BASE}/sources/\${movieId}\`);
     const data = await response.json();
     res.json(data);
   } catch (error) {
@@ -1179,8 +1572,8 @@ app.get('/health', (req, res) => {
 
 // Start server
 app.listen(PORT, () => {
-  console.log(`BB Movies server running on port ${PORT}`);
-  console.log(`Visit: http://localhost:${PORT}`);
+  console.log(\`BB Movies server running on port \${PORT}\`);
+  console.log(\`Visit: http://localhost:\${PORT}\`);
 });
 
 module.exports = app;
