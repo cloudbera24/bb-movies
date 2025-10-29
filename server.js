@@ -19,7 +19,7 @@ const MOVIE_API_BASE = process.env.MOVIE_API_BASE;
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Serve main HTML
+// Serve main HTML with Netflix-style design
 app.get('/', (req, res) => {
   res.send(`
 <!DOCTYPE html>
@@ -27,7 +27,8 @@ app.get('/', (req, res) => {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BB Movies - Real Movie Streaming</title>
+    <title>BB Movies - Netflix-Style Streaming</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         * {
             margin: 0;
@@ -35,10 +36,19 @@ app.get('/', (req, res) => {
             box-sizing: border-box;
         }
 
+        :root {
+            --netflix-red: #e50914;
+            --netflix-black: #141414;
+            --netflix-dark: #181818;
+            --netflix-gray: #2F2F2F;
+            --netflix-light: #808080;
+            --netflix-white: #FFFFFF;
+        }
+
         body {
-            background: #000;
-            color: #fff;
-            font-family: 'Arial', sans-serif;
+            background: var(--netflix-black);
+            color: var(--netflix-white);
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
             overflow-x: hidden;
         }
 
@@ -49,96 +59,109 @@ app.get('/', (req, res) => {
             left: 0;
             width: 100%;
             height: 100%;
-            background: linear-gradient(45deg, #000, #8B0000);
+            background: var(--netflix-black);
             display: flex;
             justify-content: center;
             align-items: center;
             z-index: 9999;
         }
 
-        .splash-content {
-            text-align: center;
-        }
-
-        .splash-title {
+        .splash-logo {
             font-size: 4rem;
             font-weight: bold;
-            background: linear-gradient(45deg, #fff, #8B0000);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            margin-bottom: 1rem;
+            color: var(--netflix-red);
+            animation: splashPulse 2s infinite;
         }
 
-        .splash-subtitle {
-            font-size: 1.2rem;
-            color: #ccc;
+        @keyframes splashPulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
         }
 
         .hidden {
             display: none !important;
         }
 
-        /* Navigation */
+        /* Netflix Navigation */
         .navbar {
             position: fixed;
             top: 0;
             width: 100%;
-            background: linear-gradient(180deg, rgba(0,0,0,0.9) 0%, transparent 100%);
-            padding: 1rem 2rem;
-            z-index: 1000;
-            transition: background 0.3s;
-        }
-
-        .navbar.scrolled {
-            background: rgba(0,0,0,0.95);
-        }
-
-        .nav-container {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            max-width: 1200px;
-            margin: 0 auto;
+            padding: 1.5rem 4%;
+            z-index: 1000;
+            transition: background 0.3s;
+            background: linear-gradient(180deg, rgba(0,0,0,0.7) 10%, transparent 100%);
         }
 
-        .nav-logo h1 {
-            color: #8B0000;
-            font-size: 2rem;
+        .navbar.scrolled {
+            background: var(--netflix-black);
+        }
+
+        .nav-logo {
+            font-size: 1.8rem;
             font-weight: bold;
+            color: var(--netflix-red);
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 1.5rem;
+            list-style: none;
+        }
+
+        .nav-links a {
+            color: var(--netflix-white);
+            text-decoration: none;
+            font-size: 0.9rem;
+            transition: color 0.3s;
+        }
+
+        .nav-links a:hover {
+            color: var(--netflix-light);
         }
 
         .nav-search {
             display: flex;
-            gap: 0.5rem;
-            flex: 0 1 400px;
+            align-items: center;
+            gap: 1rem;
         }
 
-        .nav-search input {
-            flex: 1;
-            padding: 0.5rem 1rem;
-            border: none;
-            border-radius: 25px;
-            background: rgba(255,255,255,0.1);
-            color: white;
-            outline: none;
-        }
-
-        .nav-search button {
-            padding: 0.5rem 1rem;
-            border: none;
-            border-radius: 25px;
-            background: #8B0000;
-            color: white;
-            cursor: pointer;
-        }
-
-        /* Hero Section */
-        .hero-section {
+        .search-container {
             position: relative;
-            height: 80vh;
             display: flex;
             align-items: center;
-            padding: 0 2rem;
+        }
+
+        .search-input {
+            background: rgba(0,0,0,0.75);
+            border: 1px solid var(--netflix-white);
+            color: var(--netflix-white);
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            width: 250px;
+            opacity: 1;
+        }
+
+        .search-btn {
+            background: none;
+            border: none;
+            color: var(--netflix-white);
+            cursor: pointer;
+            font-size: 1.2rem;
+            margin-left: 0.5rem;
+        }
+
+        /* Netflix Hero Banner */
+        .hero-banner {
+            position: relative;
+            height: 80vh;
+            background: linear-gradient(77deg, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0) 85%);
+            display: flex;
+            align-items: center;
+            padding: 0 4%;
             margin-bottom: 2rem;
         }
 
@@ -148,93 +171,152 @@ app.get('/', (req, res) => {
             left: 0;
             width: 100%;
             height: 100%;
-            background-size: cover;
-            background-position: center;
-            filter: brightness(0.4);
+            object-fit: cover;
             z-index: -1;
         }
 
         .hero-content {
-            max-width: 600px;
-            z-index: 1;
+            max-width: 40%;
+            z-index: 2;
         }
 
         .hero-title {
             font-size: 3rem;
+            font-weight: bold;
             margin-bottom: 1rem;
             text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
         }
 
         .hero-description {
             font-size: 1.1rem;
-            margin-bottom: 2rem;
-            color: #ccc;
+            line-height: 1.4;
+            margin-bottom: 1.5rem;
+            color: var(--netflix-white);
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
         }
 
-        .play-btn {
-            padding: 0.8rem 2rem;
-            border: none;
-            border-radius: 5px;
-            background: #8B0000;
-            color: white;
-            font-size: 1.1rem;
-            cursor: pointer;
-        }
-
-        /* Movie Sections */
-        .movie-sections {
-            padding: 2rem;
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-
-        .section {
-            margin-bottom: 3rem;
-        }
-
-        .section h2 {
-            font-size: 1.5rem;
-            margin-bottom: 1rem;
-            color: #fff;
-        }
-
-        .movie-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        .hero-buttons {
+            display: flex;
             gap: 1rem;
         }
 
+        .play-btn, .info-btn {
+            padding: 0.7rem 1.5rem;
+            border: none;
+            border-radius: 4px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.3s;
+        }
+
+        .play-btn {
+            background: var(--netflix-white);
+            color: var(--netflix-black);
+        }
+
+        .play-btn:hover {
+            background: rgba(255,255,255,0.75);
+        }
+
+        .info-btn {
+            background: rgba(109, 109, 110, 0.7);
+            color: var(--netflix-white);
+        }
+
+        .info-btn:hover {
+            background: rgba(109, 109, 110, 0.4);
+        }
+
+        /* Netflix Rows */
+        .content-rows {
+            padding: 0 4% 2rem;
+        }
+
+        .row {
+            margin-bottom: 3rem;
+        }
+
+        .row-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .row-title {
+            font-size: 1.4rem;
+            font-weight: bold;
+            color: var(--netflix-white);
+        }
+
+        .row-content {
+            position: relative;
+        }
+
+        .movies-container {
+            display: flex;
+            gap: 0.5rem;
+            overflow-x: auto;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+            padding: 0.5rem 0;
+        }
+
+        .movies-container::-webkit-scrollbar {
+            display: none;
+        }
+
+        /* Netflix Movie Cards */
         .movie-card {
-            border-radius: 10px;
+            flex: 0 0 auto;
+            width: 300px;
+            border-radius: 4px;
             overflow: hidden;
             cursor: pointer;
-            transition: transform 0.3s;
-            background: #1a1a1a;
+            transition: transform 0.3s ease;
+            position: relative;
         }
 
         .movie-card:hover {
             transform: scale(1.05);
+            z-index: 10;
         }
 
         .movie-poster {
             width: 100%;
-            height: 300px;
+            height: 169px;
             object-fit: cover;
+            border-radius: 4px;
         }
 
         .movie-info {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(transparent, rgba(0,0,0,0.9));
             padding: 1rem;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .movie-card:hover .movie-info {
+            opacity: 1;
         }
 
         .movie-title {
             font-size: 1rem;
-            margin-bottom: 0.5rem;
-            color: #fff;
+            font-weight: bold;
+            margin-bottom: 0.25rem;
         }
 
         .movie-year {
-            color: #ccc;
-            font-size: 0.9rem;
+            font-size: 0.8rem;
+            color: var(--netflix-light);
         }
 
         /* Video Player */
@@ -244,48 +326,86 @@ app.get('/', (req, res) => {
             left: 0;
             width: 100%;
             height: 100%;
-            background: #000;
+            background: var(--netflix-black);
             z-index: 2000;
+            display: flex;
+            flex-direction: column;
         }
 
-        .video-player video {
-            width: 100%;
-            height: 100%;
-            object-fit: contain;
+        .player-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 2rem;
+            background: linear-gradient(180deg, rgba(0,0,0,0.8) 0%, transparent 100%);
+        }
+
+        .player-title {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: var(--netflix-white);
         }
 
         .close-player {
-            position: absolute;
-            top: 1rem;
-            right: 1rem;
-            background: rgba(0,0,0,0.7);
-            color: white;
+            background: none;
             border: none;
+            color: var(--netflix-white);
             font-size: 2rem;
             cursor: pointer;
-            z-index: 2001;
         }
 
-        /* Loading */
+        .video-element {
+            flex: 1;
+            width: 100%;
+        }
+
+        /* Loading States */
         .loading {
-            text-align: center;
+            display: flex;
+            justify-content: center;
+            align-items: center;
             padding: 2rem;
-            color: #ccc;
+            color: var(--netflix-light);
         }
 
-        /* Responsive */
+        .loading-spinner {
+            border: 2px solid var(--netflix-gray);
+            border-top: 2px solid var(--netflix-red);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Responsive Design */
         @media (max-width: 768px) {
-            .nav-container {
-                flex-direction: column;
-                gap: 1rem;
+            .navbar {
+                padding: 1rem;
+            }
+
+            .nav-links {
+                display: none;
+            }
+
+            .hero-content {
+                max-width: 80%;
             }
 
             .hero-title {
                 font-size: 2rem;
             }
 
-            .movie-grid {
-                grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            .movie-card {
+                width: 200px;
+            }
+
+            .search-input {
+                width: 150px;
             }
         }
     </style>
@@ -293,59 +413,114 @@ app.get('/', (req, res) => {
 <body>
     <!-- Splash Screen -->
     <div id="splashScreen" class="splash-screen">
-        <div class="splash-content">
-            <h1 class="splash-title">BB MOVIES</h1>
-            <p class="splash-subtitle">A BERA TECH CREATION</p>
-        </div>
+        <div class="splash-logo">BB</div>
     </div>
 
     <!-- Main App -->
     <div id="app" class="hidden">
-        <!-- Navigation -->
-        <nav class="navbar">
-            <div class="nav-container">
-                <div class="nav-logo">
-                    <h1>BB MOVIES</h1>
-                </div>
-                <div class="nav-search">
-                    <input type="text" id="searchInput" placeholder="Search real movies...">
-                    <button id="searchBtn">Search</button>
+        <!-- Netflix-style Navigation -->
+        <nav class="navbar" id="navbar">
+            <div class="nav-left">
+                <div class="nav-logo">BB MOVIES</div>
+                <ul class="nav-links">
+                    <li><a href="#" class="nav-link active">Home</a></li>
+                    <li><a href="#" class="nav-link">TV Shows</a></li>
+                    <li><a href="#" class="nav-link">Movies</a></li>
+                    <li><a href="#" class="nav-link">New & Popular</a></li>
+                    <li><a href="#" class="nav-link">My List</a></li>
+                </ul>
+            </div>
+            <div class="nav-search">
+                <div class="search-container">
+                    <input type="text" class="search-input" id="searchInput" placeholder="Search movies...">
+                    <button class="search-btn" id="searchBtn">
+                        <i class="fas fa-search"></i>
+                    </button>
                 </div>
             </div>
         </nav>
 
-        <!-- Main Content -->
-        <main class="main-content">
-            <!-- Hero Section -->
-            <section class="hero-section">
-                <div class="hero-background" id="heroBackground"></div>
-                <div class="hero-content">
-                    <h1 id="heroTitle" class="hero-title">BB Movies</h1>
-                    <p id="heroDescription" class="hero-description">Stream real movies in HD quality</p>
-                    <button class="play-btn" id="heroPlayBtn">Explore Movies</button>
+        <!-- Netflix Hero Banner -->
+        <section class="hero-banner" id="heroBanner">
+            <img class="hero-background" id="heroBackground" alt="Hero Background">
+            <div class="hero-content">
+                <h1 class="hero-title" id="heroTitle">Welcome to BB Movies</h1>
+                <p class="hero-description" id="heroDescription">Stream unlimited movies and TV shows. Anytime, anywhere.</p>
+                <div class="hero-buttons">
+                    <button class="play-btn" id="heroPlayBtn">
+                        <i class="fas fa-play"></i> Play
+                    </button>
+                    <button class="info-btn" id="heroInfoBtn">
+                        <i class="fas fa-info-circle"></i> More Info
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Main Content Rows -->
+        <main class="content-rows">
+            <!-- Trending Now -->
+            <section class="row" id="trendingRow">
+                <div class="row-header">
+                    <h2 class="row-title">Trending Now</h2>
+                </div>
+                <div class="row-content">
+                    <div class="movies-container" id="trendingContainer">
+                        <div class="loading">
+                            <div class="loading-spinner"></div>
+                        </div>
+                    </div>
                 </div>
             </section>
 
-            <!-- Movie Sections -->
-            <section class="movie-sections">
-                <div class="section" id="trendingSection">
-                    <h2>Trending Now - Real Movies</h2>
-                    <div class="movie-grid" id="trendingGrid">
-                        <div class="loading">Loading real movies from API...</div>
+            <!-- Popular Movies -->
+            <section class="row" id="popularRow">
+                <div class="row-header">
+                    <h2 class="row-title">Popular Movies</h2>
+                </div>
+                <div class="row-content">
+                    <div class="movies-container" id="popularContainer">
+                        <div class="loading">
+                            <div class="loading-spinner"></div>
+                        </div>
                     </div>
                 </div>
+            </section>
 
-                <div class="section" id="searchResultsSection" style="display: none;">
-                    <h2>Search Results</h2>
-                    <div class="movie-grid" id="searchResultsGrid"></div>
+            <!-- Action Movies -->
+            <section class="row" id="actionRow">
+                <div class="row-header">
+                    <h2 class="row-title">Action Movies</h2>
+                </div>
+                <div class="row-content">
+                    <div class="movies-container" id="actionContainer">
+                        <div class="loading">
+                            <div class="loading-spinner"></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Search Results -->
+            <section class="row" id="searchResultsRow" style="display: none;">
+                <div class="row-header">
+                    <h2 class="row-title">Search Results</h2>
+                </div>
+                <div class="row-content">
+                    <div class="movies-container" id="searchResultsContainer"></div>
                 </div>
             </section>
         </main>
 
         <!-- Video Player -->
         <div id="videoPlayer" class="video-player hidden">
-            <button class="close-player" id="closePlayer">&times;</button>
-            <video id="videoElement" controls>
+            <div class="player-header">
+                <div class="player-title" id="playerTitle">Now Playing</div>
+                <button class="close-player" id="closePlayer">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <video class="video-element" id="videoElement" controls>
                 Your browser does not support the video tag.
             </video>
         </div>
@@ -355,26 +530,34 @@ app.get('/', (req, res) => {
         // Global State
         let currentMovies = [];
         let trendingMovies = [];
+        let popularMovies = [];
+        let actionMovies = [];
+        let currentHeroMovie = null;
 
         // DOM Elements
         const splashScreen = document.getElementById('splashScreen');
         const app = document.getElementById('app');
+        const navbar = document.getElementById('navbar');
         const searchInput = document.getElementById('searchInput');
         const searchBtn = document.getElementById('searchBtn');
-        const trendingGrid = document.getElementById('trendingGrid');
-        const searchResultsSection = document.getElementById('searchResultsSection');
-        const searchResultsGrid = document.getElementById('searchResultsGrid');
-        const videoPlayer = document.getElementById('videoPlayer');
-        const videoElement = document.getElementById('videoElement');
-        const closePlayer = document.getElementById('closePlayer');
+        const heroBanner = document.getElementById('heroBanner');
         const heroBackground = document.getElementById('heroBackground');
         const heroTitle = document.getElementById('heroTitle');
         const heroDescription = document.getElementById('heroDescription');
         const heroPlayBtn = document.getElementById('heroPlayBtn');
+        const heroInfoBtn = document.getElementById('heroInfoBtn');
+        const trendingContainer = document.getElementById('trendingContainer');
+        const popularContainer = document.getElementById('popularContainer');
+        const actionContainer = document.getElementById('actionContainer');
+        const searchResultsRow = document.getElementById('searchResultsRow');
+        const searchResultsContainer = document.getElementById('searchResultsContainer');
+        const videoPlayer = document.getElementById('videoPlayer');
+        const videoElement = document.getElementById('videoElement');
+        const closePlayer = document.getElementById('closePlayer');
+        const playerTitle = document.getElementById('playerTitle');
 
         // Initialize App
         document.addEventListener('DOMContentLoaded', async () => {
-            // Show splash screen for 2 seconds
             setTimeout(() => {
                 splashScreen.style.display = 'none';
                 app.classList.remove('hidden');
@@ -384,7 +567,7 @@ app.get('/', (req, res) => {
 
         function initializeApp() {
             setupEventListeners();
-            loadTrendingMovies();
+            loadAllContent();
         }
 
         function setupEventListeners() {
@@ -392,76 +575,130 @@ app.get('/', (req, res) => {
             searchInput.addEventListener('keypress', (e) => {
                 if (e.key === 'Enter') handleSearch();
             });
+
             closePlayer.addEventListener('click', () => {
                 videoPlayer.classList.add('hidden');
                 videoElement.pause();
             });
-            
-            // Close video player when clicking outside
-            videoPlayer.addEventListener('click', (e) => {
-                if (e.target === videoPlayer) {
-                    videoPlayer.classList.add('hidden');
-                    videoElement.pause();
-                }
-            });
 
-            // Navbar scroll effect
             window.addEventListener('scroll', () => {
-                const navbar = document.querySelector('.navbar');
                 if (window.scrollY > 100) {
                     navbar.classList.add('scrolled');
                 } else {
                     navbar.classList.remove('scrolled');
                 }
             });
+
+            heroPlayBtn.addEventListener('click', () => {
+                if (currentHeroMovie) {
+                    playMovie(currentHeroMovie.id);
+                }
+            });
+
+            heroInfoBtn.addEventListener('click', () => {
+                if (currentHeroMovie) {
+                    showMovieInfo(currentHeroMovie.id);
+                }
+            });
         }
 
-        // Load real trending movies from API
+        // Load all content
+        async function loadAllContent() {
+            await loadTrendingMovies();
+            await loadPopularMovies();
+            await loadActionMovies();
+        }
+
+        // Load trending movies from /api/trending
         async function loadTrendingMovies() {
             try {
-                trendingGrid.innerHTML = '<div class="loading">Loading real movies from API...</div>';
+                trendingContainer.innerHTML = '<div class="loading"><div class="loading-spinner"></div></div>';
                 
-                const response = await fetch('/api/movies/trending');
+                const response = await fetch('/api/trending');
                 const data = await response.json();
                 
                 if (data.success && data.movies.length > 0) {
                     trendingMovies = data.movies;
-                    displayMovies(trendingMovies, trendingGrid);
+                    displayMovies(trendingMovies, trendingContainer);
                     
                     // Set first movie as hero
-                    const heroMovie = trendingMovies[0];
-                    setHeroMovie(heroMovie);
+                    currentHeroMovie = trendingMovies[0];
+                    setHeroMovie(currentHeroMovie);
                 } else {
-                    trendingGrid.innerHTML = '<div class="loading">No trending movies found. Try searching above.</div>';
+                    trendingContainer.innerHTML = '<div class="loading">No trending movies found</div>';
                 }
             } catch (error) {
                 console.error('Error loading trending movies:', error);
-                trendingGrid.innerHTML = '<div class="loading">Error loading movies. Please try again.</div>';
+                trendingContainer.innerHTML = '<div class="loading">Error loading trending movies</div>';
             }
         }
 
-        // Search real movies from API
+        // Load popular movies from /api/info
+        async function loadPopularMovies() {
+            try {
+                popularContainer.innerHTML = '<div class="loading"><div class="loading-spinner"></div></div>';
+                
+                const response = await fetch('/api/info');
+                const data = await response.json();
+                
+                if (data.success && data.movies.length > 0) {
+                    popularMovies = data.movies.slice(0, 10);
+                    displayMovies(popularMovies, popularContainer);
+                } else {
+                    popularContainer.innerHTML = '<div class="loading">No popular movies found</div>';
+                }
+            } catch (error) {
+                console.error('Error loading popular movies:', error);
+                popularContainer.innerHTML = '<div class="loading">Error loading popular movies</div>';
+            }
+        }
+
+        // Load action movies from /api/search/spider
+        async function loadActionMovies() {
+            try {
+                actionContainer.innerHTML = '<div class="loading"><div class="loading-spinner"></div></div>';
+                
+                const response = await fetch('/api/search/spider');
+                const data = await response.json();
+                
+                if (data.success && data.movies.length > 0) {
+                    actionMovies = data.movies;
+                    displayMovies(actionMovies, actionContainer);
+                } else {
+                    actionContainer.innerHTML = '<div class="loading">No action movies found</div>';
+                }
+            } catch (error) {
+                console.error('Error loading action movies:', error);
+                actionContainer.innerHTML = '<div class="loading">Error loading action movies</div>';
+            }
+        }
+
+        // Search movies
         async function searchMovies(query) {
             try {
-                searchResultsGrid.innerHTML = '<div class="loading">Searching for real movies...</div>';
-                searchResultsSection.style.display = 'block';
+                searchResultsContainer.innerHTML = '<div class="loading"><div class="loading-spinner"></div></div>';
+                searchResultsRow.style.display = 'block';
                 
-                const response = await fetch('/api/movies/search?q=' + encodeURIComponent(query));
+                document.getElementById('trendingRow').style.display = 'none';
+                document.getElementById('popularRow').style.display = 'none';
+                document.getElementById('actionRow').style.display = 'none';
+                
+                const response = await fetch('/api/search/' + encodeURIComponent(query));
                 const data = await response.json();
                 
                 if (data.success && data.movies.length > 0) {
                     currentMovies = data.movies;
-                    displayMovies(currentMovies, searchResultsGrid);
+                    displayMovies(currentMovies, searchResultsContainer);
                 } else {
-                    searchResultsGrid.innerHTML = '<div class="loading">No movies found for "' + query + '"</div>';
+                    searchResultsContainer.innerHTML = '<div class="loading">No movies found for "' + query + '"</div>';
                 }
             } catch (error) {
                 console.error('Error searching movies:', error);
-                searchResultsGrid.innerHTML = '<div class="loading">Error searching movies. Please try again.</div>';
+                searchResultsContainer.innerHTML = '<div class="loading">Error searching movies</div>';
             }
         }
 
-        // Display movies in grid
+        // Display movies in Netflix-style rows
         function displayMovies(movies, container) {
             if (!movies || movies.length === 0) {
                 container.innerHTML = '<div class="loading">No movies to display</div>';
@@ -469,14 +706,14 @@ app.get('/', (req, res) => {
             }
 
             container.innerHTML = movies.map(movie => \`
-                <div class="movie-card" onclick="showMovieDetails('\${movie.id}')">
-                    <img src="\${movie.poster || 'https://via.placeholder.com/300x450/333333/FFFFFF?text=No+Poster'}" 
+                <div class="movie-card" onclick="showMovieInfo('\${movie.id}')">
+                    <img src="\${movie.poster || 'https://via.placeholder.com/300x169/2F2F2F/FFFFFF?text=No+Image'}" 
                          alt="\${movie.title || 'Movie'}" 
                          class="movie-poster"
-                         onerror="this.src='https://via.placeholder.com/300x450/333333/FFFFFF?text=No+Poster'">
+                         onerror="this.src='https://via.placeholder.com/300x169/2F2F2F/FFFFFF?text=No+Image'">
                     <div class="movie-info">
-                        <h3 class="movie-title">\${movie.title || 'Unknown Title'}</h3>
-                        <p class="movie-year">\${movie.year || ''}</p>
+                        <div class="movie-title">\${movie.title || 'Unknown Title'}</div>
+                        <div class="movie-year">\${movie.year || ''}</div>
                     </div>
                 </div>
             \`).join('');
@@ -485,24 +722,63 @@ app.get('/', (req, res) => {
         // Set hero movie
         function setHeroMovie(movie) {
             if (movie.poster) {
-                heroBackground.style.backgroundImage = \`url(\${movie.poster})\`;
+                heroBackground.src = movie.poster;
             }
             heroTitle.textContent = movie.title || 'BB Movies';
-            heroDescription.textContent = movie.description || 'Stream the latest movies in HD';
-            heroPlayBtn.onclick = () => showMovieDetails(movie.id);
+            heroDescription.textContent = movie.description || 'Stream unlimited movies and TV shows on any device.';
         }
 
-        // Show movie details and play
-        async function showMovieDetails(movieId) {
+        // Show movie info and play options
+        async function showMovieInfo(movieId) {
             try {
-                const response = await fetch('/api/movies/sources/' + movieId);
+                const response = await fetch('/api/info/' + movieId);
                 const data = await response.json();
                 
-                if (data.success && data.sources.length > 0) {
+                if (data.success && data.movie) {
+                    const movie = data.movie;
+                    const play = confirm(\`\${movie.title || 'Movie'}\\n\\n\${movie.description || 'No description available'}\\n\\nClick OK to play or Cancel for more options.\`);
+                    
+                    if (play) {
+                        playMovie(movieId);
+                    } else {
+                        // Show download option
+                        const download = confirm('Would you like to download this movie instead?');
+                        if (download) {
+                            downloadMovie(movieId);
+                        }
+                    }
+                } else {
+                    // If info not available, try to play directly
+                    playMovie(movieId);
+                }
+            } catch (error) {
+                console.error('Error getting movie info:', error);
+                // If info fails, try to play directly
+                playMovie(movieId);
+            }
+        }
+
+        // Play movie using /api/sources/{id}
+        async function playMovie(movieId) {
+            try {
+                const response = await fetch('/api/sources/' + movieId);
+                const data = await response.json();
+                
+                if (data.success && data.sources && data.sources.length > 0) {
                     const videoSource = data.sources[0].url;
+                    
+                    // Find movie title for display
+                    const allMovies = [...trendingMovies, ...popularMovies, ...actionMovies, ...currentMovies];
+                    const movie = allMovies.find(m => m.id === movieId);
+                    
                     videoElement.src = videoSource;
+                    playerTitle.textContent = movie ? movie.title : 'Now Playing';
                     videoPlayer.classList.remove('hidden');
-                    videoElement.play().catch(e => console.log('Autoplay prevented:', e));
+                    videoElement.play().catch(e => {
+                        console.log('Autoplay prevented:', e);
+                        // Show custom controls message
+                        alert('Click play in the video player to start watching.');
+                    });
                 } else {
                     alert('No video source available for this movie');
                 }
@@ -512,16 +788,46 @@ app.get('/', (req, res) => {
             }
         }
 
+        // Download movie using /api/download/{id}
+        async function downloadMovie(movieId) {
+            try {
+                const response = await fetch('/api/download/' + movieId);
+                const data = await response.json();
+                
+                if (data.success && data.downloadUrl) {
+                    // Create download link
+                    const link = document.createElement('a');
+                    link.href = data.downloadUrl;
+                    link.download = 'movie.mp4';
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    alert('Download started!');
+                } else {
+                    alert('No download available for this movie');
+                }
+            } catch (error) {
+                console.error('Error downloading movie:', error);
+                alert('Error downloading movie. Please try again.');
+            }
+        }
+
         // Handle search
         function handleSearch() {
             const query = searchInput.value.trim();
             if (query) {
                 searchMovies(query);
+            } else {
+                searchResultsRow.style.display = 'none';
+                document.getElementById('trendingRow').style.display = 'block';
+                document.getElementById('popularRow').style.display = 'block';
+                document.getElementById('actionRow').style.display = 'block';
             }
         }
 
         // Make functions global
-        window.showMovieDetails = showMovieDetails;
+        window.showMovieInfo = showMovieInfo;
+        window.playMovie = playMovie;
         window.handleSearch = handleSearch;
     </script>
 </body>
@@ -529,14 +835,14 @@ app.get('/', (req, res) => {
   `);
 });
 
-// API Routes - Real movie data
-app.get('/api/movies/trending', async (req, res) => {
+// API Routes - Using the correct endpoints
+app.get('/api/trending', async (req, res) => {
   try {
     console.log('Fetching trending movies from API...');
-    const response = await fetch(`${MOVIE_API_BASE}/search/?q=2024`);
+    const response = await fetch(`${MOVIE_API_BASE}/trending`);
     const data = await response.json();
     
-    console.log('Trending movies response:', data.movies ? data.movies.length : 0, 'movies found');
+    console.log('Trending API response:', data);
     
     if (data.movies && data.movies.length > 0) {
       res.json({ 
@@ -544,11 +850,22 @@ app.get('/api/movies/trending', async (req, res) => {
         movies: data.movies.slice(0, 20) 
       });
     } else {
-      res.json({ 
-        success: false, 
-        message: 'No trending movies found',
-        movies: []
-      });
+      // Fallback to search if trending endpoint doesn't work
+      const fallbackResponse = await fetch(`${MOVIE_API_BASE}/search/?q=2024`);
+      const fallbackData = await fallbackResponse.json();
+      
+      if (fallbackData.movies && fallbackData.movies.length > 0) {
+        res.json({ 
+          success: true, 
+          movies: fallbackData.movies.slice(0, 20) 
+        });
+      } else {
+        res.json({ 
+          success: false, 
+          message: 'No trending movies found',
+          movies: []
+        });
+      }
     }
   } catch (error) {
     console.error('Error fetching trending movies:', error);
@@ -559,21 +876,86 @@ app.get('/api/movies/trending', async (req, res) => {
   }
 });
 
-app.get('/api/movies/search', async (req, res) => {
+app.get('/api/info', async (req, res) => {
   try {
-    const query = req.query.q;
-    if (!query) {
-      return res.status(400).json({ 
-        success: false, 
-        error: 'Query parameter required' 
-      });
-    }
-
-    console.log('Searching movies for:', query);
-    const response = await fetch(`${MOVIE_API_BASE}/search/?q=${encodeURIComponent(query)}`);
+    console.log('Fetching popular movies from info API...');
+    const response = await fetch(`${MOVIE_API_BASE}/info/`);
     const data = await response.json();
     
-    console.log('Search results:', data.movies ? data.movies.length : 0, 'movies found');
+    console.log('Info API response:', data);
+    
+    if (data.movies && data.movies.length > 0) {
+      res.json({ 
+        success: true, 
+        movies: data.movies.slice(0, 15) 
+      });
+    } else {
+      // Fallback to search
+      const fallbackResponse = await fetch(`${MOVIE_API_BASE}/search/?q=popular`);
+      const fallbackData = await fallbackResponse.json();
+      
+      if (fallbackData.movies && fallbackData.movies.length > 0) {
+        res.json({ 
+          success: true, 
+          movies: fallbackData.movies.slice(0, 15) 
+        });
+      } else {
+        res.json({ 
+          success: false, 
+          message: 'No popular movies found',
+          movies: []
+        });
+      }
+    }
+  } catch (error) {
+    console.error('Error fetching popular movies:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: 'Failed to fetch popular movies' 
+    });
+  }
+});
+
+app.get('/api/info/:id', async (req, res) => {
+  try {
+    const movieId = req.params.id;
+    console.log('Fetching movie info for:', movieId);
+    
+    const response = await fetch(`${MOVIE_API_BASE}/info/${movieId}`);
+    const data = await response.json();
+    
+    console.log('Movie info response:', data);
+    
+    if (data.movie) {
+      res.json({ 
+        success: true, 
+        movie: data.movie 
+      });
+    } else {
+      res.json({ 
+        success: false, 
+        message: 'No movie info found',
+        movie: null
+      });
+    }
+  } catch (error) {
+    console.error('Error fetching movie info:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: 'Failed to fetch movie info' 
+    });
+  }
+});
+
+app.get('/api/search/:query', async (req, res) => {
+  try {
+    const query = req.params.query;
+    console.log('Searching movies for:', query);
+    
+    const response = await fetch(`${MOVIE_API_BASE}/search/${query}`);
+    const data = await response.json();
+    
+    console.log('Search API response:', data.movies ? data.movies.length : 0, 'movies found');
     
     if (data.movies && data.movies.length > 0) {
       res.json({ 
@@ -596,7 +978,7 @@ app.get('/api/movies/search', async (req, res) => {
   }
 });
 
-app.get('/api/movies/sources/:id', async (req, res) => {
+app.get('/api/sources/:id', async (req, res) => {
   try {
     const movieId = req.params.id;
     console.log('Fetching sources for movie:', movieId);
@@ -604,7 +986,7 @@ app.get('/api/movies/sources/:id', async (req, res) => {
     const response = await fetch(`${MOVIE_API_BASE}/sources/${movieId}`);
     const data = await response.json();
     
-    console.log('Sources response:', data.sources ? data.sources.length : 0, 'sources found');
+    console.log('Sources API response:', data);
     
     if (data.sources && data.sources.length > 0) {
       res.json({ 
@@ -627,22 +1009,59 @@ app.get('/api/movies/sources/:id', async (req, res) => {
   }
 });
 
+app.get('/api/download/:id', async (req, res) => {
+  try {
+    const movieId = req.params.id;
+    console.log('Fetching download for movie:', movieId);
+    
+    const response = await fetch(`${MOVIE_API_BASE}/download/${movieId}`);
+    const data = await response.json();
+    
+    console.log('Download API response:', data);
+    
+    if (data.downloadUrl) {
+      res.json({ 
+        success: true, 
+        downloadUrl: data.downloadUrl 
+      });
+    } else {
+      res.json({ 
+        success: false, 
+        message: 'No download available for this movie',
+        downloadUrl: null
+      });
+    }
+  } catch (error) {
+    console.error('Error fetching movie download:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: 'Failed to fetch movie download' 
+    });
+  }
+});
+
 // Health check
 app.get('/health', (req, res) => {
   res.json({ 
     status: 'OK', 
     timestamp: new Date().toISOString(),
-    service: 'BB Movies API',
-    movie_api: MOVIE_API_BASE
+    service: 'BB Movies - Netflix Style',
+    movie_api: MOVIE_API_BASE,
+    endpoints: {
+      trending: '/api/trending',
+      info: '/api/info',
+      search: '/api/search/:query',
+      sources: '/api/sources/:id',
+      download: '/api/download/:id'
+    }
   });
 });
 
 // Start server
 app.listen(PORT, () => {
-  console.log(`🎬 BB Movies Server running on port ${PORT}`);
+  console.log(`🎬 BB Movies Netflix-Style Server running on port ${PORT}`);
   console.log(`📍 Visit: http://localhost:${PORT}`);
   console.log(`🎯 Movie API: ${MOVIE_API_BASE}`);
-  console.log(`🔐 Supabase: ${process.env.SUPABASE_URL ? 'Connected' : 'Not configured'}`);
 });
 
 module.exports = app;
