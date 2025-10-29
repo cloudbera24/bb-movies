@@ -1287,42 +1287,36 @@ app.get('/', (req, res) => {
             }
         }
 
-        // Update downloads display
+        // Update downloads display - FIXED SYNTAX
         function updateDownloadsDisplay() {
             if (userDownloads.length === 0) {
-                downloadsGrid.innerHTML = `
-                    <div style="grid-column: 1 / -1; text-align: center; padding: 3rem; color: var(--bera-light);">
-                        <i class="fas fa-download" style="font-size: 3rem; margin-bottom: 1rem; display: block;"></i>
-                        <h3>No Downloads Yet</h3>
-                        <p>Download movies to watch them offline</p>
-                    </div>
-                `;
+                downloadsGrid.innerHTML = '<div style="grid-column: 1 / -1; text-align: center; padding: 3rem; color: var(--bera-light);"><i class="fas fa-download" style="font-size: 3rem; margin-bottom: 1rem; display: block;"></i><h3>No Downloads Yet</h3><p>Download movies to watch them offline</p></div>';
                 return;
             }
 
-            downloadsGrid.innerHTML = userDownloads.map(download => `
-                <div class="download-item">
-                    <div class="download-item-header">
-                        <div class="download-title">${download.title}</div>
-                        <div class="download-quality">${download.quality}</div>
-                    </div>
-                    <div class="download-meta">
-                        <div>Size: ${download.size}</div>
-                        <div>Downloaded: ${new Date(download.timestamp).toLocaleDateString()}</div>
-                    </div>
-                    <div class="download-progress">
-                        <div class="download-progress-bar" style="width: 100%"></div>
-                    </div>
-                    <div class="download-actions">
-                        <button class="movie-action-btn watch-btn" onclick="playDownload('${download.url}')">
-                            <i class="fas fa-play"></i> Play
-                        </button>
-                        <button class="movie-action-btn download-btn" onclick="redownloadMovie('${download.movieId}')">
-                            <i class="fas fa-redo"></i> Re-download
-                        </button>
-                    </div>
-                </div>
-            `).join('');
+            downloadsGrid.innerHTML = userDownloads.map(download => 
+                '<div class="download-item">' +
+                    '<div class="download-item-header">' +
+                        '<div class="download-title">' + download.title + '</div>' +
+                        '<div class="download-quality">' + download.quality + '</div>' +
+                    '</div>' +
+                    '<div class="download-meta">' +
+                        '<div>Size: ' + download.size + '</div>' +
+                        '<div>Downloaded: ' + new Date(download.timestamp).toLocaleDateString() + '</div>' +
+                    '</div>' +
+                    '<div class="download-progress">' +
+                        '<div class="download-progress-bar" style="width: 100%"></div>' +
+                    '</div>' +
+                    '<div class="download-actions">' +
+                        '<button class="movie-action-btn watch-btn" onclick="playDownload(\\'' + download.url + '\\')">' +
+                            '<i class="fas fa-play"></i> Play' +
+                        '</button>' +
+                        '<button class="movie-action-btn download-btn" onclick="redownloadMovie(\\'' + download.movieId + '\\')">' +
+                            '<i class="fas fa-redo"></i> Re-download' +
+                        '</button>' +
+                    '</div>' +
+                '</div>'
+            ).join('');
         }
 
         // Scroll functionality for rows
@@ -1437,39 +1431,42 @@ app.get('/', (req, res) => {
             }
         }
 
-        // Display movies with enhanced cards
+        // Display movies with enhanced cards - FIXED SYNTAX
         function displayMovies(movies, container) {
             if (!movies || movies.length === 0) {
                 container.innerHTML = '<div class="error-message">No movies to display</div>';
                 return;
             }
 
-            container.innerHTML = movies.map(movie => \`
-                <div class="movie-card">
-                    \${movie.cover && movie.cover.url ? 
-                        \`<img src="\${movie.cover.url}" alt="\${movie.title}" class="movie-poster">\` :
-                        \`<div style="background: var(--bera-gradient); height: 200px; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 1.2rem;">BERAFLIX</div>\`
-                    }
-                    \${movie.imdbRatingValue ? \`<div class="movie-rating">⭐ \${movie.imdbRatingValue}</div>\` : ''}
-                    <div class="movie-info">
-                        <div class="movie-title">\${movie.title || 'Unknown Title'}</div>
-                        <div class="movie-meta">
-                            \${movie.releaseDate ? \`<span>\${movie.releaseDate.split('-')[0]}</span>\` : ''}
-                            \${movie.genre ? \`<span>\${movie.genre.split(',')[0]}</span>\` : ''}
-                            \${movie.duration ? \`<span>\${Math.floor(movie.duration / 60)}min</span>\` : ''}
-                        </div>
-                        <div class="movie-description">\${movie.description || 'Experience premium streaming with Beraflix'}</div>
-                        <div class="movie-actions">
-                            <button class="movie-action-btn watch-btn" onclick="playMovie('\${movie.subjectId}')">
-                                <i class="fas fa-play"></i> Watch
-                            </button>
-                            <button class="movie-action-btn download-btn" onclick="showDownloadModal(\${JSON.stringify(movie)})">
-                                <i class="fas fa-download"></i> Download
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            \`).join('');
+            container.innerHTML = movies.map(movie => {
+                const poster = movie.cover && movie.cover.url ? 
+                    '<img src="' + movie.cover.url + '" alt="' + movie.title + '" class="movie-poster">' :
+                    '<div style="background: var(--bera-gradient); height: 200px; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 1.2rem;">BERAFLIX</div>';
+                
+                const rating = movie.imdbRatingValue ? '<div class="movie-rating">⭐ ' + movie.imdbRatingValue + '</div>' : '';
+                
+                return '<div class="movie-card">' +
+                    poster +
+                    rating +
+                    '<div class="movie-info">' +
+                        '<div class="movie-title">' + (movie.title || 'Unknown Title') + '</div>' +
+                        '<div class="movie-meta">' +
+                            (movie.releaseDate ? '<span>' + movie.releaseDate.split('-')[0] + '</span>' : '') +
+                            (movie.genre ? '<span>' + movie.genre.split(',')[0] + '</span>' : '') +
+                            (movie.duration ? '<span>' + Math.floor(movie.duration / 60) + 'min</span>' : '') +
+                        '</div>' +
+                        '<div class="movie-description">' + (movie.description || 'Experience premium streaming with Beraflix') + '</div>' +
+                        '<div class="movie-actions">' +
+                            '<button class="movie-action-btn watch-btn" onclick="playMovie(\\'' + movie.subjectId + '\\')">' +
+                                '<i class="fas fa-play"></i> Watch' +
+                            '</button>' +
+                            '<button class="movie-action-btn download-btn" onclick="showDownloadModal(' + JSON.stringify(movie).replace(/"/g, '&quot;') + ')">' +
+                                '<i class="fas fa-download"></i> Download' +
+                            '</button>' +
+                        '</div>' +
+                    '</div>' +
+                '</div>';
+            }).join('');
         }
 
         // Set hero movie
@@ -1500,14 +1497,14 @@ app.get('/', (req, res) => {
                 const data = await response.json();
                 
                 if (data.success && data.results && data.results.length > 0) {
-                    downloadMovieTitle.textContent = \`Download "\${movie.title}"\`;
+                    downloadMovieTitle.textContent = 'Download "' + movie.title + '"';
                     
-                    downloadQualityOptions.innerHTML = data.results.map(source => \`
-                        <div class="quality-option-large" onclick="downloadMovie('\${movie.subjectId}', '\${movie.title}', '\${source.quality}', '\${source.download_url}', '\${source.size}')">
-                            <span>\${source.quality} Quality</span>
-                            <span>\${formatFileSize(source.size)}</span>
-                        </div>
-                    \`).join('');
+                    downloadQualityOptions.innerHTML = data.results.map(source => 
+                        '<div class="quality-option-large" onclick="downloadMovie(\\'' + movie.subjectId + '\\', \\'' + movie.title + '\\', \\'' + source.quality + '\\', \\'' + source.download_url + '\\', \\'' + source.size + '\\')">' +
+                            '<span>' + source.quality + ' Quality</span>' +
+                            '<span>' + formatFileSize(source.size) + '</span>' +
+                        '</div>'
+                    ).join('');
                     
                     downloadModal.style.display = 'flex';
                 } else {
@@ -1525,7 +1522,7 @@ app.get('/', (req, res) => {
                 // Create download link with Beraflix branding
                 const link = document.createElement('a');
                 link.href = url;
-                link.download = \`Beraflix_\${title.replace(/[^a-z0-9]/gi, '_')}_\${quality}.mp4\`;
+                link.download = 'Beraflix_' + title.replace(/[^a-z0-9]/gi, '_') + '_' + quality + '.mp4';
                 link.style.display = 'none';
                 
                 document.body.appendChild(link);
@@ -1548,7 +1545,7 @@ app.get('/', (req, res) => {
                 localStorage.setItem('beraflix_downloads', JSON.stringify(userDownloads));
                 
                 // Show success message
-                alert(\`🎉 Download started!\\n\\n"\${title}" - \${quality}\\n\\nSaved as: Beraflix_\${title.replace(/[^a-z0-9]/gi, '_')}_\${quality}.mp4\\n\\nThank you for using Beraflix! 🎬\`);
+                alert('🎉 Download started!\\n\\n"' + title + '" - ' + quality + '\\n\\nSaved as: Beraflix_' + title.replace(/[^a-z0-9]/gi, '_') + '_' + quality + '.mp4\\n\\nThank you for using Beraflix! 🎬');
                 
                 downloadModal.style.display = 'none';
                 updateDownloadsDisplay();
@@ -1605,7 +1602,7 @@ app.get('/', (req, res) => {
                     const movie = allMovies.find(m => m.subjectId === movieId);
                     
                     videoElement.src = videoSource;
-                    playerTitle.textContent = movie ? \`\${movie.title} - Beraflix\` : 'Now Playing on Beraflix';
+                    playerTitle.textContent = movie ? movie.title + ' - Beraflix' : 'Now Playing on Beraflix';
                     videoPlayer.classList.remove('hidden');
                     
                     qualitySelector.style.display = 'block';
@@ -1629,7 +1626,7 @@ app.get('/', (req, res) => {
                 
                 if (data.success && data.results && data.results.subject) {
                     const movie = data.results.subject;
-                    const play = confirm(\`\${movie.title || 'Movie'}\\n\\n\${movie.description || 'No description available'}\\n\\nRating: \${movie.imdbRatingValue || 'N/A'}/10\\nGenre: \${movie.genre || 'N/A'}\\n\\nClick OK to watch or Cancel to download.\`);
+                    const play = confirm((movie.title || 'Movie') + '\\n\\n' + (movie.description || 'No description available') + '\\n\\nRating: ' + (movie.imdbRatingValue || 'N/A') + '/10\\nGenre: ' + (movie.genre || 'N/A') + '\\n\\nClick OK to watch or Cancel to download.');
                     
                     if (play) {
                         playMovie(movieId);
