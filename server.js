@@ -19,7 +19,7 @@ const MOVIE_API_BASE = 'https://movieapi.giftedtech.co.ke/api';
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Serve main HTML with Beraflix Netflix-style design
+// Serve main HTML with enhanced Beraflix design
 app.get('/', (req, res) => {
   res.send(`
 <!DOCTYPE html>
@@ -27,11 +27,11 @@ app.get('/', (req, res) => {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Beraflix - Stream Movies & TV Shows</title>
+    <title>Beraflix - Stream & Download HD Movies</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Roboto:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Montserrat:wght@300;400;500;600;700;800;900&family=Roboto:wght@300;400;500;700;900&display=swap" rel="stylesheet">
     <style>
         * {
             margin: 0;
@@ -42,20 +42,42 @@ app.get('/', (req, res) => {
         :root {
             --bera-red: #e50914;
             --bera-dark-red: #b2070f;
-            --bera-black: #141414;
-            --bera-dark: #181818;
-            --bera-gray: #2F2F2F;
-            --bera-light: #808080;
-            --bera-white: #FFFFFF;
-            --bera-gradient: linear-gradient(135deg, #e50914 0%, #b2070f 100%);
+            --bera-gold: #ffd700;
+            --bera-blue: #00a8ff;
+            --bera-black: #0a0a0a;
+            --bera-dark: #141414;
+            --bera-gray: #2a2a2a;
+            --bera-light: #8c8c8c;
+            --bera-white: #ffffff;
+            --bera-gradient: linear-gradient(135deg, #e50914 0%, #b2070f 50%, #8b0000 100%);
+            --bera-premium: linear-gradient(135deg, #ffd700 0%, #ffed4e 50%, #ffd700 100%);
+            --bera-glow: 0 0 20px rgba(229, 9, 20, 0.5);
         }
 
         body {
             background: var(--bera-black);
             color: var(--bera-white);
-            font-family: 'Roboto', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            font-family: 'Montserrat', 'Roboto', sans-serif;
             overflow-x: hidden;
-            line-height: 1.4;
+            line-height: 1.6;
+        }
+
+        /* Premium Badge */
+        .premium-badge {
+            background: var(--bera-premium);
+            color: #000;
+            padding: 0.3rem 1rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            animation: glow 2s infinite;
+        }
+
+        @keyframes glow {
+            0%, 100% { box-shadow: 0 0 10px gold; }
+            50% { box-shadow: 0 0 20px gold; }
         }
 
         /* Splash Screen */
@@ -67,6 +89,7 @@ app.get('/', (req, res) => {
             height: 100%;
             background: var(--bera-black);
             display: flex;
+            flex-direction: column;
             justify-content: center;
             align-items: center;
             z-index: 9999;
@@ -80,19 +103,31 @@ app.get('/', (req, res) => {
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             animation: splashPulse 2s infinite;
-            letter-spacing: 4px;
+            letter-spacing: 6px;
+            text-shadow: var(--bera-glow);
+            margin-bottom: 2rem;
+        }
+
+        .splash-tagline {
+            font-size: 1.5rem;
+            color: var(--bera-white);
+            opacity: 0.8;
+            font-weight: 300;
+            letter-spacing: 2px;
         }
 
         @keyframes splashPulse {
-            0%, 100% { transform: scale(1); opacity: 1; }
-            50% { transform: scale(1.05); opacity: 0.9; }
+            0%, 100% { transform: scale(1) rotate(0deg); opacity: 1; }
+            25% { transform: scale(1.05) rotate(1deg); }
+            50% { transform: scale(1.08) rotate(-1deg); opacity: 0.9; }
+            75% { transform: scale(1.05) rotate(1deg); }
         }
 
         .hidden {
             display: none !important;
         }
 
-        /* Beraflix Navigation */
+        /* Enhanced Beraflix Navigation */
         .navbar {
             position: fixed;
             top: 0;
@@ -102,50 +137,62 @@ app.get('/', (req, res) => {
             align-items: center;
             padding: 1.5rem 4%;
             z-index: 1000;
-            transition: all 0.3s ease;
-            background: linear-gradient(180deg, rgba(20,20,20,0.9) 0%, transparent 100%);
+            transition: all 0.4s ease;
+            background: linear-gradient(180deg, rgba(10,10,10,0.95) 0%, transparent 100%);
+            backdrop-filter: blur(10px);
         }
 
         .navbar.scrolled {
-            background: var(--bera-black);
-            box-shadow: 0 2px 20px rgba(0,0,0,0.5);
+            background: rgba(10,10,10,0.98);
+            box-shadow: 0 5px 30px rgba(0,0,0,0.5);
+            border-bottom: 1px solid var(--bera-red);
         }
 
         .nav-logo {
             font-family: 'Bebas Neue', cursive;
-            font-size: 2.5rem;
+            font-size: 2.8rem;
             font-weight: bold;
-            color: var(--bera-red);
-            letter-spacing: 2px;
+            color: transparent;
+            background: var(--bera-gradient);
+            -webkit-background-clip: text;
+            background-clip: text;
+            letter-spacing: 3px;
             text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
         }
 
-        .nav-logo span:first-child {
-            color: var(--bera-white);
-        }
-
-        .nav-logo span:last-child {
-            color: var(--bera-red);
+        .nav-logo::before {
+            content: "🎬";
+            font-size: 2rem;
         }
 
         .nav-links {
             display: flex;
-            gap: 2rem;
+            gap: 2.5rem;
             list-style: none;
-            margin-left: 3rem;
+            margin-left: 4rem;
         }
 
         .nav-links a {
             color: var(--bera-white);
             text-decoration: none;
-            font-size: 0.95rem;
-            font-weight: 500;
-            transition: color 0.3s;
+            font-size: 1rem;
+            font-weight: 600;
+            transition: all 0.3s;
             position: relative;
+            text-transform: uppercase;
+            letter-spacing: 1px;
         }
 
         .nav-links a:hover {
-            color: var(--bera-light);
+            color: var(--bera-red);
+            transform: translateY(-2px);
+        }
+
+        .nav-links a.active {
+            color: var(--bera-red);
         }
 
         .nav-links a.active::after {
@@ -154,14 +201,15 @@ app.get('/', (req, res) => {
             bottom: -8px;
             left: 0;
             width: 100%;
-            height: 2px;
-            background: var(--bera-red);
+            height: 3px;
+            background: var(--bera-gradient);
+            border-radius: 2px;
         }
 
         .nav-search {
             display: flex;
             align-items: center;
-            gap: 1.5rem;
+            gap: 2rem;
         }
 
         .search-container {
@@ -171,58 +219,95 @@ app.get('/', (req, res) => {
         }
 
         .search-input {
-            background: rgba(0,0,0,0.75);
-            border: 1px solid var(--bera-gray);
+            background: rgba(255,255,255,0.1);
+            border: 2px solid transparent;
             color: var(--bera-white);
-            padding: 0.6rem 1.2rem;
-            border-radius: 4px;
-            width: 280px;
-            font-size: 0.9rem;
+            padding: 0.8rem 1.5rem;
+            border-radius: 30px;
+            width: 320px;
+            font-size: 1rem;
             transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
         }
 
         .search-input:focus {
-            border-color: var(--bera-white);
-            background: rgba(0,0,0,0.9);
+            border-color: var(--bera-red);
+            background: rgba(255,255,255,0.15);
+            box-shadow: 0 0 20px rgba(229, 9, 20, 0.3);
         }
 
         .search-btn {
-            background: var(--bera-red);
+            background: var(--bera-gradient);
             border: none;
             color: var(--bera-white);
             cursor: pointer;
-            font-size: 1rem;
-            padding: 0.6rem 1rem;
-            border-radius: 4px;
-            margin-left: 0.5rem;
-            transition: background 0.3s;
+            font-size: 1.1rem;
+            padding: 0.8rem 1.2rem;
+            border-radius: 30px;
+            margin-left: 0.8rem;
+            transition: all 0.3s;
+            font-weight: 600;
         }
 
         .search-btn:hover {
-            background: var(--bera-dark-red);
+            transform: translateY(-2px);
+            box-shadow: var(--bera-glow);
+        }
+
+        .user-section {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+        }
+
+        .downloads-btn {
+            background: transparent;
+            border: 2px solid var(--bera-gold);
+            color: var(--bera-gold);
+            padding: 0.6rem 1.2rem;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .downloads-btn:hover {
+            background: var(--bera-gold);
+            color: #000;
+            transform: translateY(-2px);
         }
 
         .user-avatar {
-            width: 36px;
-            height: 36px;
-            border-radius: 4px;
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
             background: var(--bera-gradient);
             display: flex;
             align-items: center;
             justify-content: center;
             font-weight: bold;
             cursor: pointer;
+            border: 2px solid var(--bera-red);
+            transition: all 0.3s;
         }
 
-        /* Beraflix Hero Banner */
+        .user-avatar:hover {
+            transform: scale(1.1);
+            box-shadow: var(--bera-glow);
+        }
+
+        /* Enhanced Hero Banner */
         .hero-banner {
             position: relative;
-            height: 85vh;
-            background: linear-gradient(77deg, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0) 85%);
+            height: 90vh;
+            background: linear-gradient(77deg, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.7) 30%, rgba(0,0,0,0.4) 60%, transparent 100%);
             display: flex;
             align-items: center;
             padding: 0 4%;
-            margin-bottom: 3rem;
+            margin-bottom: 4rem;
             overflow: hidden;
         }
 
@@ -234,7 +319,7 @@ app.get('/', (req, res) => {
             height: 100%;
             object-fit: cover;
             z-index: -2;
-            filter: brightness(0.6);
+            filter: brightness(0.5) contrast(1.1);
         }
 
         .hero-gradient {
@@ -245,115 +330,173 @@ app.get('/', (req, res) => {
             height: 100%;
             background: linear-gradient(
                 77deg,
-                rgba(20,20,20,0.9) 0%,
-                rgba(20,20,20,0.7) 30%,
-                rgba(20,20,20,0.4) 60%,
+                rgba(10,10,10,0.95) 0%,
+                rgba(10,10,10,0.8) 30%,
+                rgba(10,10,10,0.5) 60%,
                 transparent 100%
             );
             z-index: -1;
         }
 
         .hero-content {
-            max-width: 40%;
+            max-width: 45%;
             z-index: 2;
-            margin-top: 4rem;
+            margin-top: 5rem;
+        }
+
+        .hero-badge {
+            background: var(--bera-premium);
+            color: #000;
+            padding: 0.5rem 1.5rem;
+            border-radius: 25px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            display: inline-block;
+            margin-bottom: 1.5rem;
+            animation: glow 2s infinite;
+            font-size: 0.9rem;
         }
 
         .hero-title {
-            font-size: 4rem;
+            font-size: 4.5rem;
             font-weight: 900;
             margin-bottom: 1.5rem;
-            text-shadow: 2px 2px 8px rgba(0,0,0,0.8);
+            text-shadow: 3px 3px 15px rgba(0,0,0,0.8);
             line-height: 1.1;
             font-family: 'Bebas Neue', cursive;
-            letter-spacing: 1px;
+            letter-spacing: 2px;
+            background: linear-gradient(45deg, #fff, #ffd700, #fff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-size: 200% 200%;
+            animation: shimmer 3s ease-in-out infinite;
+        }
+
+        @keyframes shimmer {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
         }
 
         .hero-description {
-            font-size: 1.3rem;
-            line-height: 1.5;
+            font-size: 1.4rem;
+            line-height: 1.6;
             margin-bottom: 2rem;
             color: var(--bera-white);
-            text-shadow: 1px 1px 4px rgba(0,0,0,0.6);
+            text-shadow: 1px 1px 5px rgba(0,0,0,0.6);
             font-weight: 400;
         }
 
         .hero-meta {
             display: flex;
-            gap: 1rem;
-            margin-bottom: 2rem;
-            font-size: 1rem;
-            color: var(--bera-light);
+            gap: 2rem;
+            margin-bottom: 2.5rem;
+            font-size: 1.1rem;
+            color: var(--bera-white);
         }
 
         .hero-meta span {
             display: flex;
             align-items: center;
-            gap: 0.5rem;
+            gap: 0.8rem;
+            background: rgba(255,255,255,0.1);
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
         }
 
         .hero-buttons {
             display: flex;
-            gap: 1rem;
+            gap: 1.5rem;
         }
 
-        .play-btn, .info-btn {
-            padding: 0.8rem 2rem;
+        .play-btn, .info-btn, .download-hero-btn {
+            padding: 1rem 2.5rem;
             border: none;
-            border-radius: 4px;
-            font-size: 1.2rem;
-            font-weight: 600;
+            border-radius: 8px;
+            font-size: 1.3rem;
+            font-weight: 700;
             cursor: pointer;
             display: flex;
             align-items: center;
-            gap: 0.8rem;
-            transition: all 0.3s ease;
-            font-family: 'Roboto', sans-serif;
+            gap: 1rem;
+            transition: all 0.4s ease;
+            font-family: 'Montserrat', sans-serif;
+            text-transform: uppercase;
+            letter-spacing: 1px;
         }
 
         .play-btn {
-            background: var(--bera-white);
-            color: var(--bera-black);
+            background: var(--bera-red);
+            color: var(--bera-white);
+            box-shadow: 0 4px 20px rgba(229, 9, 20, 0.4);
         }
 
         .play-btn:hover {
-            background: rgba(255,255,255,0.85);
-            transform: translateY(-2px);
-            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            background: var(--bera-dark-red);
+            transform: translateY(-3px) scale(1.05);
+            box-shadow: 0 8px 30px rgba(229, 9, 20, 0.6);
         }
 
         .info-btn {
-            background: rgba(109, 109, 110, 0.7);
+            background: rgba(255,255,255,0.15);
             color: var(--bera-white);
+            border: 2px solid rgba(255,255,255,0.3);
+            backdrop-filter: blur(10px);
         }
 
         .info-btn:hover {
-            background: rgba(109, 109, 110, 0.9);
-            transform: translateY(-2px);
+            background: rgba(255,255,255,0.25);
+            transform: translateY(-3px);
+            border-color: var(--bera-white);
         }
 
-        /* Beraflix Content Rows */
+        .download-hero-btn {
+            background: var(--bera-gold);
+            color: #000;
+            font-weight: 800;
+        }
+
+        .download-hero-btn:hover {
+            background: #ffed4e;
+            transform: translateY(-3px) scale(1.05);
+            box-shadow: 0 8px 30px rgba(255, 215, 0, 0.6);
+        }
+
+        /* Enhanced Content Rows */
         .content-rows {
-            padding: 0 4% 4rem;
+            padding: 0 4% 5rem;
         }
 
         .row {
-            margin-bottom: 4rem;
+            margin-bottom: 5rem;
         }
 
         .row-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 1.5rem;
+            margin-bottom: 2rem;
         }
 
         .row-title {
-            font-size: 1.8rem;
-            font-weight: 700;
+            font-size: 2.2rem;
+            font-weight: 800;
             color: var(--bera-white);
             font-family: 'Bebas Neue', cursive;
-            letter-spacing: 1px;
+            letter-spacing: 2px;
+            position: relative;
+        }
+
+        .row-title::after {
+            content: '';
+            position: absolute;
+            bottom: -8px;
+            left: 0;
+            width: 80px;
+            height: 4px;
+            background: var(--bera-gradient);
+            border-radius: 2px;
         }
 
         .row-content {
@@ -362,11 +505,11 @@ app.get('/', (req, res) => {
 
         .movies-container {
             display: flex;
-            gap: 0.8rem;
+            gap: 1rem;
             overflow-x: auto;
             scrollbar-width: none;
             -ms-overflow-style: none;
-            padding: 1rem 0;
+            padding: 1.5rem 0;
             scroll-behavior: smooth;
         }
 
@@ -374,33 +517,35 @@ app.get('/', (req, res) => {
             display: none;
         }
 
-        /* Beraflix Movie Cards */
+        /* Enhanced Movie Cards */
         .movie-card {
             flex: 0 0 auto;
-            width: 320px;
-            border-radius: 8px;
+            width: 350px;
+            border-radius: 12px;
             overflow: hidden;
             cursor: pointer;
-            transition: all 0.4s ease;
+            transition: all 0.5s ease;
             position: relative;
             background: var(--bera-dark);
+            border: 1px solid rgba(255,255,255,0.1);
         }
 
         .movie-card:hover {
-            transform: scale(1.08);
+            transform: scale(1.1) translateY(-10px);
             z-index: 10;
-            box-shadow: 0 10px 30px rgba(229, 9, 20, 0.3);
+            box-shadow: 0 20px 50px rgba(229, 9, 20, 0.4);
+            border-color: var(--bera-red);
         }
 
         .movie-poster {
             width: 100%;
-            height: 180px;
+            height: 200px;
             object-fit: cover;
-            transition: transform 0.4s ease;
+            transition: transform 0.5s ease;
         }
 
         .movie-card:hover .movie-poster {
-            transform: scale(1.1);
+            transform: scale(1.15);
         }
 
         .movie-info {
@@ -408,54 +553,161 @@ app.get('/', (req, res) => {
             bottom: 0;
             left: 0;
             right: 0;
-            background: linear-gradient(transparent, rgba(20,20,20,0.95));
-            padding: 1.5rem;
+            background: linear-gradient(transparent, rgba(10,10,10,0.98));
+            padding: 2rem;
             opacity: 0;
-            transition: opacity 0.3s ease;
+            transition: all 0.4s ease;
+            transform: translateY(20px);
         }
 
         .movie-card:hover .movie-info {
             opacity: 1;
+            transform: translateY(0);
         }
 
         .movie-title {
-            font-size: 1.2rem;
+            font-size: 1.4rem;
             font-weight: 700;
-            margin-bottom: 0.5rem;
+            margin-bottom: 0.8rem;
             color: var(--bera-white);
+            line-height: 1.2;
         }
 
         .movie-meta {
             display: flex;
-            gap: 1rem;
-            font-size: 0.85rem;
+            gap: 1.5rem;
+            font-size: 0.9rem;
             color: var(--bera-light);
-            margin-bottom: 0.8rem;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
         }
 
         .movie-description {
-            font-size: 0.9rem;
-            line-height: 1.4;
+            font-size: 0.95rem;
+            line-height: 1.5;
             color: var(--bera-white);
             display: -webkit-box;
             -webkit-line-clamp: 3;
             -webkit-box-orient: vertical;
             overflow: hidden;
+            margin-bottom: 1.5rem;
+        }
+
+        .movie-actions {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .movie-action-btn {
+            padding: 0.6rem 1.2rem;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .watch-btn {
+            background: var(--bera-red);
+            color: var(--bera-white);
+        }
+
+        .download-btn {
+            background: var(--bera-gold);
+            color: #000;
         }
 
         .movie-rating {
             position: absolute;
             top: 1rem;
             right: 1rem;
-            background: rgba(20,20,20,0.8);
-            color: var(--bera-white);
-            padding: 0.3rem 0.6rem;
-            border-radius: 4px;
-            font-size: 0.8rem;
-            font-weight: 600;
+            background: rgba(10,10,10,0.9);
+            color: var(--bera-gold);
+            padding: 0.4rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 700;
+            border: 1px solid var(--bera-gold);
         }
 
-        /* Video Player */
+        /* Downloads Section */
+        .downloads-section {
+            background: rgba(20,20,20,0.8);
+            border-radius: 15px;
+            padding: 2rem;
+            margin: 2rem 0;
+            border: 1px solid rgba(255,215,0,0.3);
+        }
+
+        .downloads-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-top: 1.5rem;
+        }
+
+        .download-item {
+            background: rgba(255,255,255,0.05);
+            border-radius: 10px;
+            padding: 1.5rem;
+            border: 1px solid rgba(255,215,0,0.2);
+            transition: all 0.3s;
+        }
+
+        .download-item:hover {
+            background: rgba(255,255,255,0.1);
+            border-color: var(--bera-gold);
+            transform: translateY(-5px);
+        }
+
+        .download-item-header {
+            display: flex;
+            justify-content: between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .download-title {
+            font-weight: 700;
+            color: var(--bera-white);
+            font-size: 1.1rem;
+        }
+
+        .download-quality {
+            background: var(--bera-gold);
+            color: #000;
+            padding: 0.3rem 0.8rem;
+            border-radius: 15px;
+            font-size: 0.8rem;
+            font-weight: 700;
+        }
+
+        .download-progress {
+            width: 100%;
+            height: 6px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 3px;
+            overflow: hidden;
+            margin: 1rem 0;
+        }
+
+        .download-progress-bar {
+            height: 100%;
+            background: var(--bera-gradient);
+            width: 0%;
+            transition: width 0.3s;
+        }
+
+        .download-actions {
+            display: flex;
+            gap: 1rem;
+        }
+
+        /* Enhanced Video Player */
         .video-player {
             position: fixed;
             top: 0;
@@ -472,16 +724,38 @@ app.get('/', (req, res) => {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 1.5rem 3rem;
-            background: linear-gradient(180deg, rgba(0,0,0,0.8) 0%, transparent 100%);
+            padding: 2rem 3rem;
+            background: linear-gradient(180deg, rgba(0,0,0,0.9) 0%, transparent 100%);
         }
 
         .player-title {
-            font-size: 1.4rem;
+            font-size: 1.6rem;
             font-weight: 700;
             color: var(--bera-white);
             font-family: 'Bebas Neue', cursive;
             letter-spacing: 1px;
+        }
+
+        .player-actions {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .player-btn {
+            background: rgba(255,255,255,0.1);
+            border: none;
+            color: var(--bera-white);
+            padding: 0.8rem 1.2rem;
+            border-radius: 6px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.3s;
+        }
+
+        .player-btn:hover {
+            background: var(--bera-red);
         }
 
         .close-player {
@@ -503,24 +777,24 @@ app.get('/', (req, res) => {
             background: #000;
         }
 
-        /* Loading States */
+        /* Enhanced Loading States */
         .loading {
             display: flex;
             justify-content: center;
             align-items: center;
-            padding: 3rem;
+            padding: 4rem;
             color: var(--bera-light);
-            font-size: 1.1rem;
+            font-size: 1.2rem;
         }
 
         .loading-spinner {
-            border: 3px solid var(--bera-gray);
-            border-top: 3px solid var(--bera-red);
+            border: 4px solid var(--bera-gray);
+            border-top: 4px solid var(--bera-red);
             border-radius: 50%;
-            width: 50px;
-            height: 50px;
+            width: 60px;
+            height: 60px;
             animation: spin 1s linear infinite;
-            margin-right: 1rem;
+            margin-right: 1.5rem;
         }
 
         @keyframes spin {
@@ -531,103 +805,114 @@ app.get('/', (req, res) => {
         /* Quality Selector */
         .quality-selector {
             position: absolute;
-            bottom: 100px;
-            right: 30px;
-            background: rgba(20,20,20,0.9);
-            border: 1px solid var(--bera-gray);
-            border-radius: 8px;
-            padding: 1rem;
+            bottom: 120px;
+            right: 40px;
+            background: rgba(20,20,20,0.95);
+            border: 2px solid var(--bera-red);
+            border-radius: 12px;
+            padding: 1.5rem;
             z-index: 2001;
             display: none;
+            backdrop-filter: blur(10px);
         }
 
         .quality-option {
-            padding: 0.8rem 1.2rem;
+            padding: 1rem 1.5rem;
             color: var(--bera-white);
             cursor: pointer;
-            transition: background 0.3s;
-            border-radius: 4px;
+            transition: all 0.3s;
+            border-radius: 8px;
+            margin: 0.5rem 0;
+            font-weight: 600;
         }
 
         .quality-option:hover {
             background: var(--bera-red);
+            transform: translateX(10px);
+        }
+
+        /* Download Modal */
+        .download-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.9);
+            z-index: 3000;
+            display: none;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .download-content {
+            background: var(--bera-dark);
+            border-radius: 15px;
+            padding: 3rem;
+            max-width: 500px;
+            width: 90%;
+            border: 2px solid var(--bera-gold);
+            text-align: center;
+        }
+
+        .download-icon {
+            font-size: 4rem;
+            color: var(--bera-gold);
+            margin-bottom: 1.5rem;
+        }
+
+        .download-quality-options {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            margin: 2rem 0;
+        }
+
+        .quality-option-large {
+            background: rgba(255,255,255,0.1);
+            padding: 1.2rem;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .quality-option-large:hover {
+            background: var(--bera-gold);
+            color: #000;
+            transform: scale(1.05);
         }
 
         /* Responsive Design */
         @media (max-width: 1200px) {
-            .hero-content {
-                max-width: 50%;
-            }
-            
-            .hero-title {
-                font-size: 3.5rem;
-            }
+            .hero-content { max-width: 55%; }
+            .hero-title { font-size: 4rem; }
         }
 
         @media (max-width: 968px) {
-            .nav-links {
-                display: none;
-            }
-            
-            .hero-content {
-                max-width: 70%;
-            }
-            
-            .hero-title {
-                font-size: 3rem;
-            }
-            
-            .movie-card {
-                width: 280px;
-            }
+            .nav-links { display: none; }
+            .hero-content { max-width: 70%; }
+            .hero-title { font-size: 3.5rem; }
+            .movie-card { width: 300px; }
         }
 
         @media (max-width: 768px) {
-            .navbar {
-                padding: 1rem;
-            }
-            
-            .search-input {
-                width: 200px;
-            }
-            
-            .hero-content {
-                max-width: 85%;
-            }
-            
-            .hero-title {
-                font-size: 2.5rem;
-            }
-            
-            .hero-description {
-                font-size: 1.1rem;
-            }
-            
-            .movie-card {
-                width: 240px;
-            }
-            
-            .splash-logo {
-                font-size: 5rem;
-            }
+            .navbar { padding: 1rem; }
+            .search-input { width: 200px; }
+            .hero-content { max-width: 85%; }
+            .hero-title { font-size: 3rem; }
+            .hero-description { font-size: 1.2rem; }
+            .movie-card { width: 250px; }
+            .splash-logo { font-size: 5rem; }
         }
 
         @media (max-width: 480px) {
-            .search-input {
-                width: 150px;
-            }
-            
-            .hero-title {
-                font-size: 2rem;
-            }
-            
-            .hero-buttons {
-                flex-direction: column;
-            }
-            
-            .movie-card {
-                width: 200px;
-            }
+            .search-input { width: 150px; }
+            .hero-title { font-size: 2.5rem; }
+            .hero-buttons { flex-direction: column; }
+            .movie-card { width: 200px; }
         }
 
         /* Scroll Buttons */
@@ -635,57 +920,47 @@ app.get('/', (req, res) => {
             position: absolute;
             top: 50%;
             transform: translateY(-50%);
-            background: rgba(20,20,20,0.7);
-            border: none;
+            background: rgba(20,20,20,0.8);
+            border: 2px solid var(--bera-red);
             color: var(--bera-white);
-            padding: 1.5rem 0.8rem;
+            padding: 2rem 1rem;
             cursor: pointer;
             z-index: 5;
             opacity: 0;
             transition: all 0.3s ease;
-            font-size: 1.5rem;
+            font-size: 1.8rem;
+            border-radius: 10px;
         }
 
-        .scroll-left {
-            left: 0;
-            border-radius: 0 8px 8px 0;
-        }
+        .scroll-left { left: 0; border-radius: 0 15px 15px 0; }
+        .scroll-right { right: 0; border-radius: 15px 0 0 15px; }
 
-        .scroll-right {
-            right: 0;
-            border-radius: 8px 0 0 8px;
-        }
-
-        .row-content:hover .scroll-btn {
-            opacity: 1;
-        }
-
-        .scroll-btn:hover {
-            background: var(--bera-red);
-        }
+        .row-content:hover .scroll-btn { opacity: 1; }
+        .scroll-btn:hover { background: var(--bera-red); }
 
         /* Error States */
         .error-message {
             text-align: center;
-            padding: 2rem;
+            padding: 3rem;
             color: var(--bera-light);
-            font-size: 1.1rem;
+            font-size: 1.2rem;
         }
 
         .retry-btn {
             background: var(--bera-red);
             color: var(--bera-white);
             border: none;
-            padding: 0.8rem 1.5rem;
-            border-radius: 4px;
+            padding: 1rem 2rem;
+            border-radius: 8px;
             cursor: pointer;
-            margin-top: 1rem;
-            font-weight: 600;
-            transition: background 0.3s;
+            margin-top: 1.5rem;
+            font-weight: 700;
+            transition: all 0.3s;
         }
 
         .retry-btn:hover {
             background: var(--bera-dark-red);
+            transform: translateY(-2px);
         }
     </style>
 </head>
@@ -693,21 +968,20 @@ app.get('/', (req, res) => {
     <!-- Splash Screen -->
     <div id="splashScreen" class="splash-screen">
         <div class="splash-logo">BERAFLIX</div>
+        <div class="splash-tagline">PREMIUM STREAMING EXPERIENCE</div>
     </div>
 
     <!-- Main App -->
     <div id="app" class="hidden">
-        <!-- Beraflix Navigation -->
+        <!-- Enhanced Beraflix Navigation -->
         <nav class="navbar" id="navbar">
             <div class="nav-left">
-                <a href="#" class="nav-logo">
-                    <span>BERA</span><span>FLIX</span>
-                </a>
+                <a href="#" class="nav-logo">BERAFLIX</a>
                 <ul class="nav-links">
                     <li><a href="#" class="nav-link active">Home</a></li>
-                    <li><a href="#" class="nav-link">TV Shows</a></li>
                     <li><a href="#" class="nav-link">Movies</a></li>
-                    <li><a href="#" class="nav-link">New & Popular</a></li>
+                    <li><a href="#" class="nav-link">TV Shows</a></li>
+                    <li><a href="#" class="nav-link">New Releases</a></li>
                     <li><a href="#" class="nav-link">My List</a></li>
                 </ul>
             </div>
@@ -715,35 +989,56 @@ app.get('/', (req, res) => {
                 <div class="search-container">
                     <input type="text" class="search-input" id="searchInput" placeholder="Search movies and TV shows...">
                     <button class="search-btn" id="searchBtn">
-                        <i class="fas fa-search"></i>
+                        <i class="fas fa-search"></i> Search
                     </button>
                 </div>
-                <div class="user-avatar">
-                    <i class="fas fa-user"></i>
+                <div class="user-section">
+                    <button class="downloads-btn" id="downloadsBtn">
+                        <i class="fas fa-download"></i> My Downloads
+                    </button>
+                    <div class="user-avatar">
+                        <i class="fas fa-crown"></i>
+                    </div>
                 </div>
             </div>
         </nav>
 
-        <!-- Beraflix Hero Banner -->
+        <!-- Enhanced Hero Banner -->
         <section class="hero-banner" id="heroBanner">
             <img class="hero-background" id="heroBackground" alt="Hero Background">
             <div class="hero-gradient"></div>
             <div class="hero-content">
+                <div class="hero-badge">🔥 TRENDING NOW</div>
                 <h1 class="hero-title" id="heroTitle">Welcome to Beraflix</h1>
-                <p class="hero-description" id="heroDescription">Unlimited movies, TV shows, and more. Watch anywhere. Cancel anytime.</p>
+                <p class="hero-description" id="heroDescription">Unlimited HD movies, TV shows, and exclusive content. Watch anywhere. Download offline.</p>
                 <div class="hero-meta" id="heroMeta">
                     <span><i class="fas fa-star"></i> <span id="heroRating">8.5/10</span></span>
                     <span><i class="fas fa-clock"></i> <span id="heroYear">2024</span></span>
                     <span><i class="fas fa-film"></i> <span id="heroGenre">Action</span></span>
+                    <span class="premium-badge">4K Available</span>
                 </div>
                 <div class="hero-buttons">
                     <button class="play-btn" id="heroPlayBtn">
-                        <i class="fas fa-play"></i> Play Now
+                        <i class="fas fa-play"></i> Watch Now
                     </button>
                     <button class="info-btn" id="heroInfoBtn">
                         <i class="fas fa-info-circle"></i> More Info
                     </button>
+                    <button class="download-hero-btn" id="heroDownloadBtn">
+                        <i class="fas fa-download"></i> Download HD
+                    </button>
                 </div>
+            </div>
+        </section>
+
+        <!-- Downloads Section -->
+        <section class="downloads-section" id="downloadsSection" style="display: none;">
+            <div class="row-header">
+                <h2 class="row-title">My Downloads</h2>
+                <span class="premium-badge">Offline Viewing</span>
+            </div>
+            <div class="downloads-grid" id="downloadsGrid">
+                <!-- Downloads will be populated here -->
             </div>
         </section>
 
@@ -752,10 +1047,11 @@ app.get('/', (req, res) => {
             <!-- Trending Now -->
             <section class="row" id="trendingRow">
                 <div class="row-header">
-                    <h2 class="row-title">Trending Now</h2>
+                    <h2 class="row-title">🔥 Trending Now</h2>
+                    <span class="premium-badge">Hot</span>
                 </div>
                 <div class="row-content">
-                    <button class="scroll-btn scroll-left" onclick="scrollRow('trendingContainer', -300)">
+                    <button class="scroll-btn scroll-left" onclick="scrollRow('trendingContainer', -400)">
                         <i class="fas fa-chevron-left"></i>
                     </button>
                     <div class="movies-container" id="trendingContainer">
@@ -764,7 +1060,7 @@ app.get('/', (req, res) => {
                             Loading trending content...
                         </div>
                     </div>
-                    <button class="scroll-btn scroll-right" onclick="scrollRow('trendingContainer', 300)">
+                    <button class="scroll-btn scroll-right" onclick="scrollRow('trendingContainer', 400)">
                         <i class="fas fa-chevron-right"></i>
                     </button>
                 </div>
@@ -773,10 +1069,11 @@ app.get('/', (req, res) => {
             <!-- Popular Movies -->
             <section class="row" id="popularRow">
                 <div class="row-header">
-                    <h2 class="row-title">Popular on Beraflix</h2>
+                    <h2 class="row-title">🎬 Popular on Beraflix</h2>
+                    <span class="premium-badge">HD</span>
                 </div>
                 <div class="row-content">
-                    <button class="scroll-btn scroll-left" onclick="scrollRow('popularContainer', -300)">
+                    <button class="scroll-btn scroll-left" onclick="scrollRow('popularContainer', -400)">
                         <i class="fas fa-chevron-left"></i>
                     </button>
                     <div class="movies-container" id="popularContainer">
@@ -785,7 +1082,7 @@ app.get('/', (req, res) => {
                             Loading popular movies...
                         </div>
                     </div>
-                    <button class="scroll-btn scroll-right" onclick="scrollRow('popularContainer', 300)">
+                    <button class="scroll-btn scroll-right" onclick="scrollRow('popularContainer', 400)">
                         <i class="fas fa-chevron-right"></i>
                     </button>
                 </div>
@@ -794,10 +1091,11 @@ app.get('/', (req, res) => {
             <!-- Action Movies -->
             <section class="row" id="actionRow">
                 <div class="row-header">
-                    <h2 class="row-title">Action & Adventure</h2>
+                    <h2 class="row-title">💥 Action & Adventure</h2>
+                    <span class="premium-badge">4K</span>
                 </div>
                 <div class="row-content">
-                    <button class="scroll-btn scroll-left" onclick="scrollRow('actionContainer', -300)">
+                    <button class="scroll-btn scroll-left" onclick="scrollRow('actionContainer', -400)">
                         <i class="fas fa-chevron-left"></i>
                     </button>
                     <div class="movies-container" id="actionContainer">
@@ -806,7 +1104,7 @@ app.get('/', (req, res) => {
                             Loading action movies...
                         </div>
                     </div>
-                    <button class="scroll-btn scroll-right" onclick="scrollRow('actionContainer', 300)">
+                    <button class="scroll-btn scroll-right" onclick="scrollRow('actionContainer', 400)">
                         <i class="fas fa-chevron-right"></i>
                     </button>
                 </div>
@@ -823,13 +1121,18 @@ app.get('/', (req, res) => {
             </section>
         </main>
 
-        <!-- Video Player -->
+        <!-- Enhanced Video Player -->
         <div id="videoPlayer" class="video-player hidden">
             <div class="player-header">
                 <div class="player-title" id="playerTitle">Now Playing on Beraflix</div>
-                <button class="close-player" id="closePlayer">
-                    <i class="fas fa-times"></i>
-                </button>
+                <div class="player-actions">
+                    <button class="player-btn" id="downloadPlayerBtn">
+                        <i class="fas fa-download"></i> Download
+                    </button>
+                    <button class="close-player" id="closePlayer">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
             </div>
             <video class="video-element" id="videoElement" controls>
                 Your browser does not support the video tag.
@@ -838,20 +1141,36 @@ app.get('/', (req, res) => {
 
         <!-- Quality Selector -->
         <div class="quality-selector" id="qualitySelector">
-            <div class="quality-option" data-quality="360p">360p</div>
-            <div class="quality-option" data-quality="480p">480p</div>
-            <div class="quality-option" data-quality="720p">720p</div>
+            <div class="quality-option" data-quality="360p">360p - Good</div>
+            <div class="quality-option" data-quality="480p">480p - Better</div>
+            <div class="quality-option" data-quality="720p">720p - HD</div>
+        </div>
+
+        <!-- Download Modal -->
+        <div class="download-modal" id="downloadModal">
+            <div class="download-content">
+                <div class="download-icon">
+                    <i class="fas fa-download"></i>
+                </div>
+                <h3>Download Movie</h3>
+                <p id="downloadMovieTitle">Select your preferred quality:</p>
+                <div class="download-quality-options" id="downloadQualityOptions">
+                    <!-- Quality options will be populated here -->
+                </div>
+                <button class="retry-btn" id="closeDownloadModal">Cancel</button>
+            </div>
         </div>
     </div>
 
     <script>
-        // Global State
+        // Enhanced Global State
         let currentMovies = [];
         let trendingMovies = [];
         let popularMovies = [];
         let actionMovies = [];
         let currentHeroMovie = null;
         let currentMovieSources = [];
+        let userDownloads = JSON.parse(localStorage.getItem('beraflix_downloads')) || [];
 
         // DOM Elements
         const splashScreen = document.getElementById('splashScreen');
@@ -859,6 +1178,9 @@ app.get('/', (req, res) => {
         const navbar = document.getElementById('navbar');
         const searchInput = document.getElementById('searchInput');
         const searchBtn = document.getElementById('searchBtn');
+        const downloadsBtn = document.getElementById('downloadsBtn');
+        const downloadsSection = document.getElementById('downloadsSection');
+        const downloadsGrid = document.getElementById('downloadsGrid');
         const heroBanner = document.getElementById('heroBanner');
         const heroBackground = document.getElementById('heroBackground');
         const heroTitle = document.getElementById('heroTitle');
@@ -868,6 +1190,7 @@ app.get('/', (req, res) => {
         const heroGenre = document.getElementById('heroGenre');
         const heroPlayBtn = document.getElementById('heroPlayBtn');
         const heroInfoBtn = document.getElementById('heroInfoBtn');
+        const heroDownloadBtn = document.getElementById('heroDownloadBtn');
         const trendingContainer = document.getElementById('trendingContainer');
         const popularContainer = document.getElementById('popularContainer');
         const actionContainer = document.getElementById('actionContainer');
@@ -876,8 +1199,13 @@ app.get('/', (req, res) => {
         const videoPlayer = document.getElementById('videoPlayer');
         const videoElement = document.getElementById('videoElement');
         const closePlayer = document.getElementById('closePlayer');
+        const downloadPlayerBtn = document.getElementById('downloadPlayerBtn');
         const playerTitle = document.getElementById('playerTitle');
         const qualitySelector = document.getElementById('qualitySelector');
+        const downloadModal = document.getElementById('downloadModal');
+        const downloadMovieTitle = document.getElementById('downloadMovieTitle');
+        const downloadQualityOptions = document.getElementById('downloadQualityOptions');
+        const closeDownloadModal = document.getElementById('closeDownloadModal');
 
         // Initialize App
         document.addEventListener('DOMContentLoaded', async () => {
@@ -885,12 +1213,13 @@ app.get('/', (req, res) => {
                 splashScreen.style.display = 'none';
                 app.classList.remove('hidden');
                 initializeApp();
-            }, 2500);
+            }, 3000);
         });
 
         function initializeApp() {
             setupEventListeners();
             loadAllContent();
+            updateDownloadsDisplay();
         }
 
         function setupEventListeners() {
@@ -899,11 +1228,15 @@ app.get('/', (req, res) => {
                 if (e.key === 'Enter') handleSearch();
             });
 
+            downloadsBtn.addEventListener('click', toggleDownloadsSection);
+
             closePlayer.addEventListener('click', () => {
                 videoPlayer.classList.add('hidden');
                 videoElement.pause();
                 qualitySelector.style.display = 'none';
             });
+
+            downloadPlayerBtn.addEventListener('click', showDownloadOptionsForCurrent);
 
             window.addEventListener('scroll', () => {
                 if (window.scrollY > 100) {
@@ -925,6 +1258,12 @@ app.get('/', (req, res) => {
                 }
             });
 
+            heroDownloadBtn.addEventListener('click', () => {
+                if (currentHeroMovie) {
+                    showDownloadModal(currentHeroMovie);
+                }
+            });
+
             // Quality selector
             document.querySelectorAll('.quality-option').forEach(option => {
                 option.addEventListener('click', (e) => {
@@ -932,6 +1271,58 @@ app.get('/', (req, res) => {
                     selectQuality(quality);
                 });
             });
+
+            closeDownloadModal.addEventListener('click', () => {
+                downloadModal.style.display = 'none';
+            });
+        }
+
+        // Toggle downloads section
+        function toggleDownloadsSection() {
+            const isVisible = downloadsSection.style.display !== 'none';
+            downloadsSection.style.display = isVisible ? 'none' : 'block';
+            
+            if (!isVisible) {
+                updateDownloadsDisplay();
+            }
+        }
+
+        // Update downloads display
+        function updateDownloadsDisplay() {
+            if (userDownloads.length === 0) {
+                downloadsGrid.innerHTML = `
+                    <div style="grid-column: 1 / -1; text-align: center; padding: 3rem; color: var(--bera-light);">
+                        <i class="fas fa-download" style="font-size: 3rem; margin-bottom: 1rem; display: block;"></i>
+                        <h3>No Downloads Yet</h3>
+                        <p>Download movies to watch them offline</p>
+                    </div>
+                `;
+                return;
+            }
+
+            downloadsGrid.innerHTML = userDownloads.map(download => `
+                <div class="download-item">
+                    <div class="download-item-header">
+                        <div class="download-title">${download.title}</div>
+                        <div class="download-quality">${download.quality}</div>
+                    </div>
+                    <div class="download-meta">
+                        <div>Size: ${download.size}</div>
+                        <div>Downloaded: ${new Date(download.timestamp).toLocaleDateString()}</div>
+                    </div>
+                    <div class="download-progress">
+                        <div class="download-progress-bar" style="width: 100%"></div>
+                    </div>
+                    <div class="download-actions">
+                        <button class="movie-action-btn watch-btn" onclick="playDownload('${download.url}')">
+                            <i class="fas fa-play"></i> Play
+                        </button>
+                        <button class="movie-action-btn download-btn" onclick="redownloadMovie('${download.movieId}')">
+                            <i class="fas fa-redo"></i> Re-download
+                        </button>
+                    </div>
+                </div>
+            `).join('');
         }
 
         // Scroll functionality for rows
@@ -959,7 +1350,6 @@ app.get('/', (req, res) => {
                     trendingMovies = data.results.items.slice(0, 12);
                     displayMovies(trendingMovies, trendingContainer);
                     
-                    // Set first movie as hero if not already set
                     if (!currentHeroMovie) {
                         currentHeroMovie = trendingMovies[0];
                         setHeroMovie(currentHeroMovie);
@@ -985,7 +1375,6 @@ app.get('/', (req, res) => {
                     popularMovies = data.results.items.slice(0, 12);
                     displayMovies(popularMovies, popularContainer);
                 } else {
-                    // Fallback to different search
                     const fallbackResponse = await fetch('/api/search/movie');
                     const fallbackData = await fallbackResponse.json();
                     
@@ -1028,10 +1417,10 @@ app.get('/', (req, res) => {
                 searchResultsContainer.innerHTML = '<div class="loading"><div class="loading-spinner"></div>Searching for "' + query + '"...</div>';
                 searchResultsRow.style.display = 'block';
                 
-                // Hide other rows during search
                 document.getElementById('trendingRow').style.display = 'none';
                 document.getElementById('popularRow').style.display = 'none';
                 document.getElementById('actionRow').style.display = 'none';
+                downloadsSection.style.display = 'none';
                 
                 const response = await fetch('/api/search/' + encodeURIComponent(query));
                 const data = await response.json();
@@ -1048,7 +1437,7 @@ app.get('/', (req, res) => {
             }
         }
 
-        // Display movies in Beraflix-style rows
+        // Display movies with enhanced cards
         function displayMovies(movies, container) {
             if (!movies || movies.length === 0) {
                 container.innerHTML = '<div class="error-message">No movies to display</div>';
@@ -1056,19 +1445,28 @@ app.get('/', (req, res) => {
             }
 
             container.innerHTML = movies.map(movie => \`
-                <div class="movie-card" onclick="showMovieDetails('\${movie.subjectId}')">
+                <div class="movie-card">
                     \${movie.cover && movie.cover.url ? 
                         \`<img src="\${movie.cover.url}" alt="\${movie.title}" class="movie-poster">\` :
-                        \`<div style="background: var(--bera-gradient); height: 180px; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold;">No Image</div>\`
+                        \`<div style="background: var(--bera-gradient); height: 200px; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 1.2rem;">BERAFLIX</div>\`
                     }
-                    \${movie.imdbRatingValue ? \`<div class="movie-rating">\${movie.imdbRatingValue}/10</div>\` : ''}
+                    \${movie.imdbRatingValue ? \`<div class="movie-rating">⭐ \${movie.imdbRatingValue}</div>\` : ''}
                     <div class="movie-info">
                         <div class="movie-title">\${movie.title || 'Unknown Title'}</div>
                         <div class="movie-meta">
                             \${movie.releaseDate ? \`<span>\${movie.releaseDate.split('-')[0]}</span>\` : ''}
                             \${movie.genre ? \`<span>\${movie.genre.split(',')[0]}</span>\` : ''}
+                            \${movie.duration ? \`<span>\${Math.floor(movie.duration / 60)}min</span>\` : ''}
                         </div>
-                        <div class="movie-description">\${movie.description || 'No description available'}</div>
+                        <div class="movie-description">\${movie.description || 'Experience premium streaming with Beraflix'}</div>
+                        <div class="movie-actions">
+                            <button class="movie-action-btn watch-btn" onclick="playMovie('\${movie.subjectId}')">
+                                <i class="fas fa-play"></i> Watch
+                            </button>
+                            <button class="movie-action-btn download-btn" onclick="showDownloadModal(\${JSON.stringify(movie)})">
+                                <i class="fas fa-download"></i> Download
+                            </button>
+                        </div>
                     </div>
                 </div>
             \`).join('');
@@ -1079,8 +1477,8 @@ app.get('/', (req, res) => {
             if (movie.cover && movie.cover.url) {
                 heroBackground.src = movie.cover.url;
             }
-            heroTitle.textContent = movie.title || 'Beraflix';
-            heroDescription.textContent = movie.description || 'Unlimited movies, TV shows, and more. Watch anywhere. Cancel anytime.';
+            heroTitle.textContent = movie.title || 'Beraflix Premium';
+            heroDescription.textContent = movie.description || 'Unlimited HD movies, TV shows, and exclusive content. Watch anywhere. Download offline.';
             
             if (movie.imdbRatingValue) {
                 heroRating.textContent = movie.imdbRatingValue + '/10';
@@ -1095,33 +1493,100 @@ app.get('/', (req, res) => {
             }
         }
 
-        // Show movie details and play options
-        async function showMovieDetails(movieId) {
+        // Show download modal
+        async function showDownloadModal(movie) {
             try {
-                const response = await fetch('/api/info/' + movieId);
+                const response = await fetch('/api/sources/' + movie.subjectId);
                 const data = await response.json();
                 
-                if (data.success && data.results && data.results.subject) {
-                    const movie = data.results.subject;
-                    const play = confirm(\`\${movie.title || 'Movie'}\\n\\n\${movie.description || 'No description available'}\\n\\nRating: \${movie.imdbRatingValue || 'N/A'}/10\\n\\nClick OK to play or Cancel for download options.\`);
+                if (data.success && data.results && data.results.length > 0) {
+                    downloadMovieTitle.textContent = \`Download "\${movie.title}"\`;
                     
-                    if (play) {
-                        playMovie(movieId);
-                    } else {
-                        showDownloadOptions(movieId);
-                    }
+                    downloadQualityOptions.innerHTML = data.results.map(source => \`
+                        <div class="quality-option-large" onclick="downloadMovie('\${movie.subjectId}', '\${movie.title}', '\${source.quality}', '\${source.download_url}', '\${source.size}')">
+                            <span>\${source.quality} Quality</span>
+                            <span>\${formatFileSize(source.size)}</span>
+                        </div>
+                    \`).join('');
+                    
+                    downloadModal.style.display = 'flex';
                 } else {
-                    // If info not available, try to play directly
-                    playMovie(movieId);
+                    alert('No download sources available for this movie');
                 }
             } catch (error) {
-                console.error('Error getting movie info:', error);
-                // If info fails, try to play directly
-                playMovie(movieId);
+                console.error('Error getting download sources:', error);
+                alert('Error getting download options');
             }
         }
 
-        // Play movie using sources endpoint
+        // Download movie function
+        async function downloadMovie(movieId, title, quality, url, size) {
+            try {
+                // Create download link with Beraflix branding
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = \`Beraflix_\${title.replace(/[^a-z0-9]/gi, '_')}_\${quality}.mp4\`;
+                link.style.display = 'none';
+                
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                
+                // Add to downloads history
+                const download = {
+                    movieId: movieId,
+                    title: title,
+                    quality: quality,
+                    url: url,
+                    size: size,
+                    timestamp: Date.now()
+                };
+                
+                userDownloads.unshift(download);
+                // Keep only last 20 downloads
+                userDownloads = userDownloads.slice(0, 20);
+                localStorage.setItem('beraflix_downloads', JSON.stringify(userDownloads));
+                
+                // Show success message
+                alert(\`🎉 Download started!\\n\\n"\${title}" - \${quality}\\n\\nSaved as: Beraflix_\${title.replace(/[^a-z0-9]/gi, '_')}_\${quality}.mp4\\n\\nThank you for using Beraflix! 🎬\`);
+                
+                downloadModal.style.display = 'none';
+                updateDownloadsDisplay();
+                
+            } catch (error) {
+                console.error('Error downloading movie:', error);
+                alert('Error starting download. Please try again.');
+            }
+        }
+
+        // Play downloaded movie
+        function playDownload(url) {
+            videoElement.src = url;
+            playerTitle.textContent = 'Playing Downloaded Movie';
+            videoPlayer.classList.remove('hidden');
+            videoElement.play();
+        }
+
+        // Redownload movie
+        function redownloadMovie(movieId) {
+            const allMovies = [...trendingMovies, ...popularMovies, ...actionMovies, ...currentMovies];
+            const movie = allMovies.find(m => m.subjectId === movieId);
+            if (movie) {
+                showDownloadModal(movie);
+            }
+        }
+
+        // Show download options for current playing movie
+        function showDownloadOptionsForCurrent() {
+            const allMovies = [...trendingMovies, ...popularMovies, ...actionMovies, ...currentMovies];
+            const currentMovieId = videoElement.src.includes('/api/') ? videoElement.src.split('/').pop() : null;
+            const movie = allMovies.find(m => m.subjectId === currentMovieId);
+            if (movie) {
+                showDownloadModal(movie);
+            }
+        }
+
+        // Play movie
         async function playMovie(movieId) {
             try {
                 const response = await fetch('/api/sources/' + movieId);
@@ -1130,24 +1595,20 @@ app.get('/', (req, res) => {
                 if (data.success && data.results && data.results.length > 0) {
                     currentMovieSources = data.results;
                     
-                    // Auto-select the highest quality (720p if available)
                     let selectedSource = data.results.find(source => source.quality === '720p') ||
                                        data.results.find(source => source.quality === '480p') ||
                                        data.results[0];
                     
                     const videoSource = selectedSource.download_url;
                     
-                    // Find movie title for display
                     const allMovies = [...trendingMovies, ...popularMovies, ...actionMovies, ...currentMovies];
                     const movie = allMovies.find(m => m.subjectId === movieId);
                     
                     videoElement.src = videoSource;
-                    playerTitle.textContent = movie ? movie.title : 'Now Playing on Beraflix';
+                    playerTitle.textContent = movie ? \`\${movie.title} - Beraflix\` : 'Now Playing on Beraflix';
                     videoPlayer.classList.remove('hidden');
                     
-                    // Show quality selector
                     qualitySelector.style.display = 'block';
-                    
                     videoElement.play().catch(e => {
                         console.log('Autoplay prevented:', e);
                     });
@@ -1160,29 +1621,27 @@ app.get('/', (req, res) => {
             }
         }
 
-        // Show download options
-        async function showDownloadOptions(movieId) {
+        // Show movie details
+        async function showMovieDetails(movieId) {
             try {
-                const response = await fetch('/api/sources/' + movieId);
+                const response = await fetch('/api/info/' + movieId);
                 const data = await response.json();
                 
-                if (data.success && data.results && data.results.length > 0) {
-                    let message = 'Available download qualities:\\n\\n';
-                    data.results.forEach(source => {
-                        message += \`\${source.quality} - \${formatFileSize(source.size)}\\n\`;
-                    });
-                    message += '\\nClick OK to download the highest quality.';
+                if (data.success && data.results && data.results.subject) {
+                    const movie = data.results.subject;
+                    const play = confirm(\`\${movie.title || 'Movie'}\\n\\n\${movie.description || 'No description available'}\\n\\nRating: \${movie.imdbRatingValue || 'N/A'}/10\\nGenre: \${movie.genre || 'N/A'}\\n\\nClick OK to watch or Cancel to download.\`);
                     
-                    if (confirm(message)) {
-                        const bestQuality = data.results[0];
-                        window.open(bestQuality.download_url, '_blank');
+                    if (play) {
+                        playMovie(movieId);
+                    } else {
+                        showDownloadModal(movie);
                     }
                 } else {
-                    alert('No download available for this movie');
+                    playMovie(movieId);
                 }
             } catch (error) {
-                console.error('Error getting download options:', error);
-                alert('Error getting download options.');
+                console.error('Error getting movie info:', error);
+                playMovie(movieId);
             }
         }
 
@@ -1219,9 +1678,14 @@ app.get('/', (req, res) => {
         // Make functions global
         window.showMovieDetails = showMovieDetails;
         window.playMovie = playMovie;
+        window.showDownloadModal = showDownloadModal;
+        window.downloadMovie = downloadMovie;
+        window.playDownload = playDownload;
+        window.redownloadMovie = redownloadMovie;
         window.handleSearch = handleSearch;
         window.scrollRow = scrollRow;
         window.loadTrendingMovies = loadTrendingMovies;
+        window.toggleDownloadsSection = toggleDownloadsSection;
     </script>
 </body>
 </html>
@@ -1327,22 +1791,19 @@ app.get('/health', (req, res) => {
   res.json({ 
     status: 'OK', 
     timestamp: new Date().toISOString(),
-    service: 'Beraflix - Netflix Clone',
+    service: 'Beraflix - Premium Streaming Platform',
     movie_api: MOVIE_API_BASE,
-    endpoints: {
-      search: '/api/search/:query',
-      info: '/api/info/:id',
-      sources: '/api/sources/:id'
-    }
+    features: ['HD Streaming', 'Offline Downloads', '4K Content', 'Premium Experience']
   });
 });
 
 // Start server
 app.listen(PORT, () => {
-  console.log(`🎬 Beraflix Server running on port ${PORT}`);
+  console.log(`🎬 Beraflix Premium Server running on port ${PORT}`);
   console.log(`📍 Visit: http://localhost:${PORT}`);
   console.log(`🎯 Movie API: ${MOVIE_API_BASE}`);
-  console.log(`✨ Brand: BERAFLIX - Premium Streaming Experience`);
+  console.log(`✨ Brand: BERAFLIX - The Ultimate Streaming Experience`);
+  console.log(`💫 Features: HD Streaming • Offline Downloads • 4K Content`);
 });
 
 module.exports = app;
