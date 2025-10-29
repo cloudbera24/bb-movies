@@ -1020,23 +1020,22 @@ function displaySearchResults(movies) {
 function showMovieDetails(movie) {
     const modalContent = document.getElementById('modalContent');
     
-    modalContent.innerHTML = \`
-        <div class="movie-details">
-            <div class="details-header">
-                <img src="\${movie.poster || '/placeholder.jpg'}" alt="\${movie.title}" class="details-poster" onerror="this.src='/placeholder.jpg'">
-                <div class="details-info">
-                    <h2>\${movie.title || 'Unknown Title'}</h2>
-                    <p class="details-year">\${movie.year || ''}</p>
-                    <p class="details-description">\${movie.description || 'No description available'}</p>
-                    <div class="details-actions">
-                        <button class="play-btn" onclick="playMovie(\${JSON.stringify(movie).replace(/"/g, '&quot;')})">▶ Play</button>
-                        <button class="download-btn" onclick="downloadMovie(\${JSON.stringify(movie).replace(/"/g, '&quot;')})">⬇ Download</button>
-                        <button class="favorite-btn" onclick="addToWatchlist(\${JSON.stringify(movie).replace(/"/g, '&quot;')})">❤ Add to Watchlist</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    \`;
+    modalContent.innerHTML = 
+        '<div class="movie-details">' +
+        '<div class="details-header">' +
+        '<img src="' + (movie.poster || '/placeholder.jpg') + '" alt="' + movie.title + '" class="details-poster" onerror="this.src=\\'/placeholder.jpg\\'">' +
+        '<div class="details-info">' +
+        '<h2>' + (movie.title || 'Unknown Title') + '</h2>' +
+        '<p class="details-year">' + (movie.year || '') + '</p>' +
+        '<p class="details-description">' + (movie.description || 'No description available') + '</p>' +
+        '<div class="details-actions">' +
+        '<button class="play-btn" onclick="playMovie(' + JSON.stringify(movie).replace(/"/g, '&quot;') + ')">▶ Play</button>' +
+        '<button class="download-btn" onclick="downloadMovie(' + JSON.stringify(movie).replace(/"/g, '&quot;') + ')">⬇ Download</button>' +
+        '<button class="favorite-btn" onclick="addToWatchlist(' + JSON.stringify(movie).replace(/"/g, '&quot;') + ')">❤ Add to Watchlist</button>' +
+        '</div>' +
+        '</div>' +
+        '</div>' +
+        '</div>';
     
     movieModal.classList.remove('hidden');
 }
@@ -1385,20 +1384,19 @@ function showLoading(message) {
     // Simple loading indicator
     const loading = document.createElement('div');
     loading.id = 'loading';
-    loading.style.cssText = \`
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0,0,0,0.8);
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        z-index: 9999;
-        color: white;
-        font-size: 1.2rem;
-    \`;
+    loading.style.cssText = 
+        'position: fixed;' +
+        'top: 0;' +
+        'left: 0;' +
+        'width: 100%;' +
+        'height: 100%;' +
+        'background: rgba(0,0,0,0.8);' +
+        'display: flex;' +
+        'justify-content: center;' +
+        'align-items: center;' +
+        'z-index: 9999;' +
+        'color: white;' +
+        'font-size: 1.2rem;';
     loading.textContent = message;
     document.body.appendChild(loading);
 }
@@ -1525,10 +1523,10 @@ app.get('/manifest.json', (req, res) => {
   });
 });
 
-// API Routes
+// API Routes - FIXED SYNTAX
 app.get('/api/movies/trending', async (req, res) => {
   try {
-    const response = await fetch(\`${MOVIE_API_BASE}/search/?q=action\`);
+    const response = await fetch(MOVIE_API_BASE + '/search/?q=action');
     const data = await response.json();
     res.json({ movies: data.movies || [] });
   } catch (error) {
@@ -1544,7 +1542,7 @@ app.get('/api/movies/search', async (req, res) => {
       return res.status(400).json({ error: 'Query parameter required' });
     }
 
-    const response = await fetch(\`${MOVIE_API_BASE}/search/?q=\${encodeURIComponent(query)}\`);
+    const response = await fetch(MOVIE_API_BASE + '/search/?q=' + encodeURIComponent(query));
     const data = await response.json();
     res.json({ movies: data.movies || [] });
   } catch (error) {
@@ -1556,7 +1554,7 @@ app.get('/api/movies/search', async (req, res) => {
 app.get('/api/movies/sources/:id', async (req, res) => {
   try {
     const movieId = req.params.id;
-    const response = await fetch(\`${MOVIE_API_BASE}/sources/\${movieId}\`);
+    const response = await fetch(MOVIE_API_BASE + '/sources/' + movieId);
     const data = await response.json();
     res.json(data);
   } catch (error) {
@@ -1572,8 +1570,8 @@ app.get('/health', (req, res) => {
 
 // Start server
 app.listen(PORT, () => {
-  console.log(\`BB Movies server running on port \${PORT}\`);
-  console.log(\`Visit: http://localhost:\${PORT}\`);
+  console.log('BB Movies server running on port ' + PORT);
+  console.log('Visit: http://localhost:' + PORT);
 });
 
 module.exports = app;
