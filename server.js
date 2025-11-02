@@ -19,6 +19,23 @@ const MOVIE_API_BASE = 'https://movieapi.giftedtech.co.ke/api';
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Enhanced Content Categories
+const CONTENT_CATEGORIES = {
+  movies: 'Movies',
+  series: 'TV Series',
+  tvshows: 'TV Shows',
+  newreleases: 'New Releases',
+  trending: 'Trending Now',
+  popular: 'Popular',
+  mylist: 'My List'
+};
+
+const GENRES = [
+  'Action', 'Adventure', 'Romance', 'Mystery', 'Thriller', 
+  'Comedy', 'Drama', 'Horror', 'Sci-Fi', 'Fantasy',
+  'Animation', 'Documentary', 'Crime', 'Family', 'Western'
+];
+
 // Serve main HTML with enhanced Beraflix design
 app.get('/', (req, res) => {
   res.send(`
@@ -27,7 +44,7 @@ app.get('/', (req, res) => {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Beraflix - Stream & Download HD Movies</title>
+    <title>Beraflix - Stream & Download HD Movies & TV Shows</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -44,6 +61,8 @@ app.get('/', (req, res) => {
             --bera-dark-red: #b2070f;
             --bera-gold: #ffd700;
             --bera-blue: #00a8ff;
+            --bera-green: #00ff88;
+            --bera-purple: #8a2be2;
             --bera-black: #0a0a0a;
             --bera-dark: #141414;
             --bera-gray: #2a2a2a;
@@ -51,6 +70,8 @@ app.get('/', (req, res) => {
             --bera-white: #ffffff;
             --bera-gradient: linear-gradient(135deg, #e50914 0%, #b2070f 50%, #8b0000 100%);
             --bera-premium: linear-gradient(135deg, #ffd700 0%, #ffed4e 50%, #ffd700 100%);
+            --bera-blue-gradient: linear-gradient(135deg, #00a8ff 0%, #0097e6 50%, #0078b5 100%);
+            --bera-purple-gradient: linear-gradient(135deg, #8a2be2 0%, #7b1fa2 50%, #6a1b9a 100%);
             --bera-glow: 0 0 20px rgba(229, 9, 20, 0.5);
         }
 
@@ -127,7 +148,7 @@ app.get('/', (req, res) => {
             display: none !important;
         }
 
-        /* Enhanced Beraflix Navigation */
+        /* Enhanced Navigation with Categories */
         .navbar {
             position: fixed;
             top: 0;
@@ -184,26 +205,19 @@ app.get('/', (req, res) => {
             position: relative;
             text-transform: uppercase;
             letter-spacing: 1px;
+            padding: 0.5rem 1rem;
+            border-radius: 25px;
         }
 
         .nav-links a:hover {
             color: var(--bera-red);
             transform: translateY(-2px);
+            background: rgba(229, 9, 20, 0.1);
         }
 
         .nav-links a.active {
             color: var(--bera-red);
-        }
-
-        .nav-links a.active::after {
-            content: '';
-            position: absolute;
-            bottom: -8px;
-            left: 0;
-            width: 100%;
-            height: 3px;
-            background: var(--bera-gradient);
-            border-radius: 2px;
+            background: rgba(229, 9, 20, 0.2);
         }
 
         .nav-search {
@@ -299,6 +313,51 @@ app.get('/', (req, res) => {
             box-shadow: var(--bera-glow);
         }
 
+        /* Enhanced Category Filter */
+        .category-filter {
+            position: fixed;
+            top: 80px;
+            left: 0;
+            width: 100%;
+            background: rgba(20,20,20,0.95);
+            backdrop-filter: blur(10px);
+            padding: 1rem 4%;
+            z-index: 999;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            display: flex;
+            gap: 1rem;
+            overflow-x: auto;
+            scrollbar-width: none;
+        }
+
+        .category-filter::-webkit-scrollbar {
+            display: none;
+        }
+
+        .filter-btn {
+            background: rgba(255,255,255,0.1);
+            border: 2px solid transparent;
+            color: var(--bera-white);
+            padding: 0.7rem 1.5rem;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+            white-space: nowrap;
+            font-size: 0.9rem;
+        }
+
+        .filter-btn:hover {
+            background: rgba(229, 9, 20, 0.2);
+            border-color: var(--bera-red);
+        }
+
+        .filter-btn.active {
+            background: var(--bera-gradient);
+            border-color: var(--bera-red);
+            color: var(--bera-white);
+        }
+
         /* Enhanced Hero Banner */
         .hero-banner {
             position: relative;
@@ -309,6 +368,7 @@ app.get('/', (req, res) => {
             padding: 0 4%;
             margin-bottom: 4rem;
             overflow: hidden;
+            margin-top: 140px;
         }
 
         .hero-background {
@@ -410,7 +470,7 @@ app.get('/', (req, res) => {
             gap: 1.5rem;
         }
 
-        .play-btn, .info-btn, .download-hero-btn {
+        .play-btn, .info-btn, .download-hero-btn, .add-to-list-btn {
             padding: 1rem 2.5rem;
             border: none;
             border-radius: 8px;
@@ -461,6 +521,16 @@ app.get('/', (req, res) => {
             background: #ffed4e;
             transform: translateY(-3px) scale(1.05);
             box-shadow: 0 8px 30px rgba(255, 215, 0, 0.6);
+        }
+
+        .add-to-list-btn {
+            background: var(--bera-blue);
+            color: var(--bera-white);
+        }
+
+        .add-to-list-btn:hover {
+            background: #0097e6;
+            transform: translateY(-3px);
         }
 
         /* Enhanced Content Rows */
@@ -621,6 +691,11 @@ app.get('/', (req, res) => {
             color: #000;
         }
 
+        .add-btn {
+            background: var(--bera-blue);
+            color: var(--bera-white);
+        }
+
         .movie-rating {
             position: absolute;
             top: 1rem;
@@ -633,6 +708,23 @@ app.get('/', (req, res) => {
             font-weight: 700;
             border: 1px solid var(--bera-gold);
         }
+
+        .content-type-badge {
+            position: absolute;
+            top: 1rem;
+            left: 1rem;
+            background: rgba(10,10,10,0.9);
+            color: var(--bera-white);
+            padding: 0.4rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            border: 1px solid;
+        }
+
+        .movie-badge { border-color: var(--bera-red); }
+        .series-badge { border-color: var(--bera-blue); }
+        .tvshow-badge { border-color: var(--bera-purple); }
 
         /* Downloads Section */
         .downloads-section {
@@ -666,7 +758,7 @@ app.get('/', (req, res) => {
 
         .download-item-header {
             display: flex;
-            justify-content: between;
+            justify-content: space-between;
             align-items: center;
             margin-bottom: 1rem;
         }
@@ -885,6 +977,27 @@ app.get('/', (req, res) => {
             transform: scale(1.05);
         }
 
+        /* My List Section */
+        .my-list-section {
+            background: rgba(20,20,20,0.8);
+            border-radius: 15px;
+            padding: 2rem;
+            margin: 2rem 0;
+            border: 1px solid rgba(0,168,255,0.3);
+        }
+
+        .empty-list {
+            text-align: center;
+            padding: 4rem;
+            color: var(--bera-light);
+        }
+
+        .empty-list i {
+            font-size: 4rem;
+            margin-bottom: 1.5rem;
+            color: var(--bera-blue);
+        }
+
         /* Responsive Design */
         @media (max-width: 1200px) {
             .hero-content { max-width: 55%; }
@@ -896,6 +1009,8 @@ app.get('/', (req, res) => {
             .hero-content { max-width: 70%; }
             .hero-title { font-size: 3.5rem; }
             .movie-card { width: 300px; }
+            .category-filter { top: 70px; padding: 1rem; }
+            .hero-banner { margin-top: 120px; }
         }
 
         @media (max-width: 768px) {
@@ -906,6 +1021,7 @@ app.get('/', (req, res) => {
             .hero-description { font-size: 1.2rem; }
             .movie-card { width: 250px; }
             .splash-logo { font-size: 5rem; }
+            .hero-buttons { flex-wrap: wrap; }
         }
 
         @media (max-width: 480px) {
@@ -913,6 +1029,7 @@ app.get('/', (req, res) => {
             .hero-title { font-size: 2.5rem; }
             .hero-buttons { flex-direction: column; }
             .movie-card { width: 200px; }
+            .category-filter { flex-wrap: wrap; justify-content: center; }
         }
 
         /* Scroll Buttons */
@@ -962,6 +1079,25 @@ app.get('/', (req, res) => {
             background: var(--bera-dark-red);
             transform: translateY(-2px);
         }
+
+        /* Notification System */
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: var(--bera-gradient);
+            color: white;
+            padding: 1rem 2rem;
+            border-radius: 10px;
+            z-index: 10000;
+            transform: translateX(400px);
+            transition: transform 0.3s ease;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.3);
+        }
+
+        .notification.show {
+            transform: translateX(0);
+        }
     </style>
 </head>
 <body>
@@ -978,11 +1114,12 @@ app.get('/', (req, res) => {
             <div class="nav-left">
                 <a href="#" class="nav-logo">BERAFLIX</a>
                 <ul class="nav-links">
-                    <li><a href="#" class="nav-link active">Home</a></li>
-                    <li><a href="#" class="nav-link">Movies</a></li>
-                    <li><a href="#" class="nav-link">TV Shows</a></li>
-                    <li><a href="#" class="nav-link">New Releases</a></li>
-                    <li><a href="#" class="nav-link">My List</a></li>
+                    <li><a href="#" class="nav-link active" data-category="all">Home</a></li>
+                    <li><a href="#" class="nav-link" data-category="movies">Movies</a></li>
+                    <li><a href="#" class="nav-link" data-category="series">TV Series</a></li>
+                    <li><a href="#" class="nav-link" data-category="tvshows">TV Shows</a></li>
+                    <li><a href="#" class="nav-link" data-category="newreleases">New Releases</a></li>
+                    <li><a href="#" class="nav-link" data-category="mylist">My List</a></li>
                 </ul>
             </div>
             <div class="nav-search">
@@ -1002,6 +1139,20 @@ app.get('/', (req, res) => {
                 </div>
             </div>
         </nav>
+
+        <!-- Category Filter -->
+        <div class="category-filter" id="categoryFilter">
+            <button class="filter-btn active" data-genre="all">All</button>
+            <button class="filter-btn" data-genre="action">Action</button>
+            <button class="filter-btn" data-genre="adventure">Adventure</button>
+            <button class="filter-btn" data-genre="romance">Romance</button>
+            <button class="filter-btn" data-genre="mystery">Mystery</button>
+            <button class="filter-btn" data-genre="thriller">Thriller</button>
+            <button class="filter-btn" data-genre="comedy">Comedy</button>
+            <button class="filter-btn" data-genre="drama">Drama</button>
+            <button class="filter-btn" data-genre="horror">Horror</button>
+            <button class="filter-btn" data-genre="sci-fi">Sci-Fi</button>
+        </div>
 
         <!-- Enhanced Hero Banner -->
         <section class="hero-banner" id="heroBanner">
@@ -1027,6 +1178,9 @@ app.get('/', (req, res) => {
                     <button class="download-hero-btn" id="heroDownloadBtn">
                         <i class="fas fa-download"></i> Download HD
                     </button>
+                    <button class="add-to-list-btn" id="heroAddToListBtn">
+                        <i class="fas fa-plus"></i> My List
+                    </button>
                 </div>
             </div>
         </section>
@@ -1042,8 +1196,19 @@ app.get('/', (req, res) => {
             </div>
         </section>
 
+        <!-- My List Section -->
+        <section class="my-list-section" id="myListSection" style="display: none;">
+            <div class="row-header">
+                <h2 class="row-title">My List</h2>
+                <span class="premium-badge">Personalized</span>
+            </div>
+            <div class="movies-container" id="myListContainer">
+                <!-- My List content will be populated here -->
+            </div>
+        </section>
+
         <!-- Main Content Rows -->
-        <main class="content-rows">
+        <main class="content-rows" id="mainContent">
             <!-- Trending Now -->
             <section class="row" id="trendingRow">
                 <div class="row-header">
@@ -1066,10 +1231,32 @@ app.get('/', (req, res) => {
                 </div>
             </section>
 
+            <!-- New Releases -->
+            <section class="row" id="newReleasesRow">
+                <div class="row-header">
+                    <h2 class="row-title">🎉 New Releases</h2>
+                    <span class="premium-badge">Latest</span>
+                </div>
+                <div class="row-content">
+                    <button class="scroll-btn scroll-left" onclick="scrollRow('newReleasesContainer', -400)">
+                        <i class="fas fa-chevron-left"></i>
+                    </button>
+                    <div class="movies-container" id="newReleasesContainer">
+                        <div class="loading">
+                            <div class="loading-spinner"></div>
+                            Loading new releases...
+                        </div>
+                    </div>
+                    <button class="scroll-btn scroll-right" onclick="scrollRow('newReleasesContainer', 400)">
+                        <i class="fas fa-chevron-right"></i>
+                    </button>
+                </div>
+            </section>
+
             <!-- Popular Movies -->
             <section class="row" id="popularRow">
                 <div class="row-header">
-                    <h2 class="row-title">🎬 Popular on Beraflix</h2>
+                    <h2 class="row-title">🎬 Popular Movies</h2>
                     <span class="premium-badge">HD</span>
                 </div>
                 <div class="row-content">
@@ -1083,6 +1270,28 @@ app.get('/', (req, res) => {
                         </div>
                     </div>
                     <button class="scroll-btn scroll-right" onclick="scrollRow('popularContainer', 400)">
+                        <i class="fas fa-chevron-right"></i>
+                    </button>
+                </div>
+            </section>
+
+            <!-- TV Series -->
+            <section class="row" id="seriesRow">
+                <div class="row-header">
+                    <h2 class="row-title">📺 TV Series</h2>
+                    <span class="premium-badge">Binge-watch</span>
+                </div>
+                <div class="row-content">
+                    <button class="scroll-btn scroll-left" onclick="scrollRow('seriesContainer', -400)">
+                        <i class="fas fa-chevron-left"></i>
+                    </button>
+                    <div class="movies-container" id="seriesContainer">
+                        <div class="loading">
+                            <div class="loading-spinner"></div>
+                            Loading TV series...
+                        </div>
+                    </div>
+                    <button class="scroll-btn scroll-right" onclick="scrollRow('seriesContainer', 400)">
                         <i class="fas fa-chevron-right"></i>
                     </button>
                 </div>
@@ -1105,6 +1314,28 @@ app.get('/', (req, res) => {
                         </div>
                     </div>
                     <button class="scroll-btn scroll-right" onclick="scrollRow('actionContainer', 400)">
+                        <i class="fas fa-chevron-right"></i>
+                    </button>
+                </div>
+            </section>
+
+            <!-- Romance Movies -->
+            <section class="row" id="romanceRow">
+                <div class="row-header">
+                    <h2 class="row-title">💖 Romance</h2>
+                    <span class="premium-badge">Feel Good</span>
+                </div>
+                <div class="row-content">
+                    <button class="scroll-btn scroll-left" onclick="scrollRow('romanceContainer', -400)">
+                        <i class="fas fa-chevron-left"></i>
+                    </button>
+                    <div class="movies-container" id="romanceContainer">
+                        <div class="loading">
+                            <div class="loading-spinner"></div>
+                            Loading romance movies...
+                        </div>
+                    </div>
+                    <button class="scroll-btn scroll-right" onclick="scrollRow('romanceContainer', 400)">
                         <i class="fas fa-chevron-right"></i>
                     </button>
                 </div>
@@ -1144,6 +1375,8 @@ app.get('/', (req, res) => {
             <div class="quality-option" data-quality="360p">360p - Good</div>
             <div class="quality-option" data-quality="480p">480p - Better</div>
             <div class="quality-option" data-quality="720p">720p - HD</div>
+            <div class="quality-option" data-quality="1080p">1080p - Full HD</div>
+            <div class="quality-option" data-quality="4k">4K - Ultra HD</div>
         </div>
 
         <!-- Download Modal -->
@@ -1152,13 +1385,18 @@ app.get('/', (req, res) => {
                 <div class="download-icon">
                     <i class="fas fa-download"></i>
                 </div>
-                <h3>Download Movie</h3>
+                <h3>Download with <span style="color: var(--bera-gold);">BeraTech</span></h3>
                 <p id="downloadMovieTitle">Select your preferred quality:</p>
                 <div class="download-quality-options" id="downloadQualityOptions">
                     <!-- Quality options will be populated here -->
                 </div>
                 <button class="retry-btn" id="closeDownloadModal">Cancel</button>
             </div>
+        </div>
+
+        <!-- Notification -->
+        <div class="notification" id="notification">
+            <i class="fas fa-check-circle"></i> <span id="notificationText">Operation completed successfully!</span>
         </div>
     </div>
 
@@ -1168,19 +1406,28 @@ app.get('/', (req, res) => {
         let trendingMovies = [];
         let popularMovies = [];
         let actionMovies = [];
+        let romanceMovies = [];
+        let seriesMovies = [];
+        let newReleases = [];
         let currentHeroMovie = null;
         let currentMovieSources = [];
         let userDownloads = JSON.parse(localStorage.getItem('beraflix_downloads')) || [];
+        let userList = JSON.parse(localStorage.getItem('beraflix_mylist')) || [];
+        let currentCategory = 'all';
+        let currentGenre = 'all';
 
         // DOM Elements
         const splashScreen = document.getElementById('splashScreen');
         const app = document.getElementById('app');
         const navbar = document.getElementById('navbar');
+        const categoryFilter = document.getElementById('categoryFilter');
         const searchInput = document.getElementById('searchInput');
         const searchBtn = document.getElementById('searchBtn');
         const downloadsBtn = document.getElementById('downloadsBtn');
         const downloadsSection = document.getElementById('downloadsSection');
         const downloadsGrid = document.getElementById('downloadsGrid');
+        const myListSection = document.getElementById('myListSection');
+        const myListContainer = document.getElementById('myListContainer');
         const heroBanner = document.getElementById('heroBanner');
         const heroBackground = document.getElementById('heroBackground');
         const heroTitle = document.getElementById('heroTitle');
@@ -1191,9 +1438,13 @@ app.get('/', (req, res) => {
         const heroPlayBtn = document.getElementById('heroPlayBtn');
         const heroInfoBtn = document.getElementById('heroInfoBtn');
         const heroDownloadBtn = document.getElementById('heroDownloadBtn');
+        const heroAddToListBtn = document.getElementById('heroAddToListBtn');
         const trendingContainer = document.getElementById('trendingContainer');
         const popularContainer = document.getElementById('popularContainer');
         const actionContainer = document.getElementById('actionContainer');
+        const romanceContainer = document.getElementById('romanceContainer');
+        const seriesContainer = document.getElementById('seriesContainer');
+        const newReleasesContainer = document.getElementById('newReleasesContainer');
         const searchResultsRow = document.getElementById('searchResultsRow');
         const searchResultsContainer = document.getElementById('searchResultsContainer');
         const videoPlayer = document.getElementById('videoPlayer');
@@ -1206,6 +1457,8 @@ app.get('/', (req, res) => {
         const downloadMovieTitle = document.getElementById('downloadMovieTitle');
         const downloadQualityOptions = document.getElementById('downloadQualityOptions');
         const closeDownloadModal = document.getElementById('closeDownloadModal');
+        const notification = document.getElementById('notification');
+        const notificationText = document.getElementById('notificationText');
 
         // Initialize App
         document.addEventListener('DOMContentLoaded', async () => {
@@ -1220,16 +1473,37 @@ app.get('/', (req, res) => {
             setupEventListeners();
             loadAllContent();
             updateDownloadsDisplay();
+            updateMyListDisplay();
         }
 
         function setupEventListeners() {
+            // Search functionality
             searchBtn.addEventListener('click', handleSearch);
             searchInput.addEventListener('keypress', (e) => {
                 if (e.key === 'Enter') handleSearch();
             });
 
+            // Navigation
             downloadsBtn.addEventListener('click', toggleDownloadsSection);
 
+            // Category navigation
+            document.querySelectorAll('.nav-link').forEach(link => {
+                link.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const category = e.target.getAttribute('data-category');
+                    switchCategory(category);
+                });
+            });
+
+            // Genre filtering
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const genre = e.target.getAttribute('data-genre');
+                    filterByGenre(genre);
+                });
+            });
+
+            // Video player
             closePlayer.addEventListener('click', () => {
                 videoPlayer.classList.add('hidden');
                 videoElement.pause();
@@ -1238,6 +1512,7 @@ app.get('/', (req, res) => {
 
             downloadPlayerBtn.addEventListener('click', showDownloadOptionsForCurrent);
 
+            // Scroll effect for navbar
             window.addEventListener('scroll', () => {
                 if (window.scrollY > 100) {
                     navbar.classList.add('scrolled');
@@ -1246,6 +1521,7 @@ app.get('/', (req, res) => {
                 }
             });
 
+            // Hero buttons
             heroPlayBtn.addEventListener('click', () => {
                 if (currentHeroMovie) {
                     playMovie(currentHeroMovie.subjectId);
@@ -1264,6 +1540,12 @@ app.get('/', (req, res) => {
                 }
             });
 
+            heroAddToListBtn.addEventListener('click', () => {
+                if (currentHeroMovie) {
+                    toggleMyList(currentHeroMovie);
+                }
+            });
+
             // Quality selector
             document.querySelectorAll('.quality-option').forEach(option => {
                 option.addEventListener('click', (e) => {
@@ -1277,46 +1559,177 @@ app.get('/', (req, res) => {
             });
         }
 
+        // Switch category
+        function switchCategory(category) {
+            currentCategory = category;
+            
+            // Update active nav link
+            document.querySelectorAll('.nav-link').forEach(link => {
+                link.classList.remove('active');
+            });
+            document.querySelector(`[data-category="${category}"]`).classList.add('active');
+
+            // Show/hide sections based on category
+            const mainContent = document.getElementById('mainContent');
+            const downloadsSection = document.getElementById('downloadsSection');
+            const myListSection = document.getElementById('myListSection');
+            const searchResultsRow = document.getElementById('searchResultsRow');
+
+            if (category === 'mylist') {
+                mainContent.style.display = 'none';
+                downloadsSection.style.display = 'none';
+                myListSection.style.display = 'block';
+                searchResultsRow.style.display = 'none';
+                updateMyListDisplay();
+            } else if (category === 'all') {
+                mainContent.style.display = 'block';
+                downloadsSection.style.display = 'none';
+                myListSection.style.display = 'none';
+                searchResultsRow.style.display = 'none';
+            } else {
+                // Filter content based on category
+                filterContentByCategory(category);
+            }
+        }
+
+        // Filter by genre
+        function filterByGenre(genre) {
+            currentGenre = genre;
+            
+            // Update active filter button
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            document.querySelector(`[data-genre="${genre}"]`).classList.add('active');
+
+            // Filter content
+            filterContent();
+        }
+
+        // Filter content based on current category and genre
+        function filterContent() {
+            const rows = document.querySelectorAll('.row');
+            rows.forEach(row => {
+                if (currentGenre === 'all') {
+                    row.style.display = 'block';
+                } else {
+                    const rowTitle = row.querySelector('.row-title').textContent.toLowerCase();
+                    if (rowTitle.includes(currentGenre)) {
+                        row.style.display = 'block';
+                    } else {
+                        row.style.display = 'none';
+                    }
+                }
+            });
+        }
+
+        // Filter content by category
+        function filterContentByCategory(category) {
+            const rows = document.querySelectorAll('.row');
+            rows.forEach(row => {
+                const rowId = row.id;
+                if (rowId.includes(category)) {
+                    row.style.display = 'block';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+        }
+
         // Toggle downloads section
         function toggleDownloadsSection() {
             const isVisible = downloadsSection.style.display !== 'none';
             downloadsSection.style.display = isVisible ? 'none' : 'block';
+            myListSection.style.display = 'none';
+            document.getElementById('mainContent').style.display = isVisible ? 'block' : 'none';
             
             if (!isVisible) {
                 updateDownloadsDisplay();
             }
         }
 
-        // Update downloads display - FIXED SYNTAX
+        // Update downloads display
         function updateDownloadsDisplay() {
             if (userDownloads.length === 0) {
-                downloadsGrid.innerHTML = '<div style="grid-column: 1 / -1; text-align: center; padding: 3rem; color: var(--bera-light);"><i class="fas fa-download" style="font-size: 3rem; margin-bottom: 1rem; display: block;"></i><h3>No Downloads Yet</h3><p>Download movies to watch them offline</p></div>';
+                downloadsGrid.innerHTML = `
+                    <div style="grid-column: 1 / -1; text-align: center; padding: 3rem; color: var(--bera-light);">
+                        <i class="fas fa-download" style="font-size: 3rem; margin-bottom: 1rem; display: block;"></i>
+                        <h3>No Downloads Yet</h3>
+                        <p>Download movies to watch them offline</p>
+                    </div>`;
                 return;
             }
 
             downloadsGrid.innerHTML = userDownloads.map(download => 
-                '<div class="download-item">' +
-                    '<div class="download-item-header">' +
-                        '<div class="download-title">' + download.title + '</div>' +
-                        '<div class="download-quality">' + download.quality + '</div>' +
-                    '</div>' +
-                    '<div class="download-meta">' +
-                        '<div>Size: ' + download.size + '</div>' +
-                        '<div>Downloaded: ' + new Date(download.timestamp).toLocaleDateString() + '</div>' +
-                    '</div>' +
-                    '<div class="download-progress">' +
-                        '<div class="download-progress-bar" style="width: 100%"></div>' +
-                    '</div>' +
-                    '<div class="download-actions">' +
-                        '<button class="movie-action-btn watch-btn" onclick="playDownload(\\'' + download.url + '\\')">' +
-                            '<i class="fas fa-play"></i> Play' +
-                        '</button>' +
-                        '<button class="movie-action-btn download-btn" onclick="redownloadMovie(\\'' + download.movieId + '\\')">' +
-                            '<i class="fas fa-redo"></i> Re-download' +
-                        '</button>' +
-                    '</div>' +
-                '</div>'
+                `<div class="download-item">
+                    <div class="download-item-header">
+                        <div class="download-title">${download.title}</div>
+                        <div class="download-quality">${download.quality}</div>
+                    </div>
+                    <div class="download-meta">
+                        <div>Size: ${download.size}</div>
+                        <div>Downloaded: ${new Date(download.timestamp).toLocaleDateString()}</div>
+                    </div>
+                    <div class="download-progress">
+                        <div class="download-progress-bar" style="width: 100%"></div>
+                    </div>
+                    <div class="download-actions">
+                        <button class="movie-action-btn watch-btn" onclick="playDownload('${download.url}')">
+                            <i class="fas fa-play"></i> Play
+                        </button>
+                        <button class="movie-action-btn download-btn" onclick="redownloadMovie('${download.movieId}')">
+                            <i class="fas fa-redo"></i> Re-download
+                        </button>
+                    </div>
+                </div>`
             ).join('');
+        }
+
+        // Update My List display
+        function updateMyListDisplay() {
+            if (userList.length === 0) {
+                myListContainer.innerHTML = `
+                    <div class="empty-list">
+                        <i class="fas fa-bookmark"></i>
+                        <h3>Your List is Empty</h3>
+                        <p>Add movies and TV shows to your list to watch later</p>
+                    </div>`;
+                return;
+            }
+
+            displayMovies(userList, myListContainer);
+        }
+
+        // Toggle item in My List
+        function toggleMyList(movie) {
+            const existingIndex = userList.findIndex(item => item.subjectId === movie.subjectId);
+            
+            if (existingIndex > -1) {
+                userList.splice(existingIndex, 1);
+                showNotification('Removed from My List');
+            } else {
+                userList.push(movie);
+                showNotification('Added to My List');
+            }
+            
+            localStorage.setItem('beraflix_mylist', JSON.stringify(userList));
+            updateMyListDisplay();
+            
+            // Update button state
+            const isInList = userList.some(item => item.subjectId === movie.subjectId);
+            heroAddToListBtn.innerHTML = isInList ? 
+                '<i class="fas fa-check"></i> In List' : 
+                '<i class="fas fa-plus"></i> My List';
+        }
+
+        // Show notification
+        function showNotification(message) {
+            notificationText.textContent = message;
+            notification.classList.add('show');
+            
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 3000);
         }
 
         // Scroll functionality for rows
@@ -1330,6 +1743,9 @@ app.get('/', (req, res) => {
             await loadTrendingMovies();
             await loadPopularMovies();
             await loadActionMovies();
+            await loadRomanceMovies();
+            await loadSeries();
+            await loadNewReleases();
         }
 
         // Load trending movies
@@ -1405,16 +1821,85 @@ app.get('/', (req, res) => {
             }
         }
 
+        // Load romance movies
+        async function loadRomanceMovies() {
+            try {
+                romanceContainer.innerHTML = '<div class="loading"><div class="loading-spinner"></div>Loading romance movies...</div>';
+                
+                const response = await fetch('/api/search/romance');
+                const data = await response.json();
+                
+                if (data.success && data.results && data.results.items.length > 0) {
+                    romanceMovies = data.results.items.slice(0, 12);
+                    displayMovies(romanceMovies, romanceContainer);
+                } else {
+                    romanceContainer.innerHTML = '<div class="error-message">No romance movies found.</div>';
+                }
+            } catch (error) {
+                console.error('Error loading romance movies:', error);
+                romanceContainer.innerHTML = '<div class="error-message">Error loading romance movies.</div>';
+            }
+        }
+
+        // Load TV series
+        async function loadSeries() {
+            try {
+                seriesContainer.innerHTML = '<div class="loading"><div class="loading-spinner"></div>Loading TV series...</div>';
+                
+                const response = await fetch('/api/search/series');
+                const data = await response.json();
+                
+                if (data.success && data.results && data.results.items.length > 0) {
+                    seriesMovies = data.results.items.slice(0, 12);
+                    displayMovies(seriesMovies, seriesContainer, 'series');
+                } else {
+                    seriesContainer.innerHTML = '<div class="error-message">No TV series found.</div>';
+                }
+            } catch (error) {
+                console.error('Error loading TV series:', error);
+                seriesContainer.innerHTML = '<div class="error-message">Error loading TV series.</div>';
+            }
+        }
+
+        // Load new releases
+        async function loadNewReleases() {
+            try {
+                newReleasesContainer.innerHTML = '<div class="loading"><div class="loading-spinner"></div>Loading new releases...</div>';
+                
+                const response = await fetch('/api/search/new');
+                const data = await response.json();
+                
+                if (data.success && data.results && data.results.items.length > 0) {
+                    newReleases = data.results.items.slice(0, 12);
+                    displayMovies(newReleases, newReleasesContainer);
+                } else {
+                    // Use current year movies as fallback
+                    const currentYear = new Date().getFullYear();
+                    const fallbackResponse = await fetch('/api/search/' + currentYear);
+                    const fallbackData = await fallbackResponse.json();
+                    
+                    if (fallbackData.success && fallbackData.results && fallbackData.results.items.length > 0) {
+                        newReleases = fallbackData.results.items.slice(0, 12);
+                        displayMovies(newReleases, newReleasesContainer);
+                    } else {
+                        newReleasesContainer.innerHTML = '<div class="error-message">No new releases found.</div>';
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading new releases:', error);
+                newReleasesContainer.innerHTML = '<div class="error-message">Error loading new releases.</div>';
+            }
+        }
+
         // Search movies
         async function searchMovies(query) {
             try {
                 searchResultsContainer.innerHTML = '<div class="loading"><div class="loading-spinner"></div>Searching for "' + query + '"...</div>';
                 searchResultsRow.style.display = 'block';
                 
-                document.getElementById('trendingRow').style.display = 'none';
-                document.getElementById('popularRow').style.display = 'none';
-                document.getElementById('actionRow').style.display = 'none';
+                document.getElementById('mainContent').style.display = 'none';
                 downloadsSection.style.display = 'none';
+                myListSection.style.display = 'none';
                 
                 const response = await fetch('/api/search/' + encodeURIComponent(query));
                 const data = await response.json();
@@ -1431,8 +1916,8 @@ app.get('/', (req, res) => {
             }
         }
 
-        // Display movies with enhanced cards - FIXED SYNTAX
-        function displayMovies(movies, container) {
+        // Display movies with enhanced cards
+        function displayMovies(movies, container, type = 'movie') {
             if (!movies || movies.length === 0) {
                 container.innerHTML = '<div class="error-message">No movies to display</div>';
                 return;
@@ -1445,9 +1930,18 @@ app.get('/', (req, res) => {
                 
                 const rating = movie.imdbRatingValue ? '<div class="movie-rating">⭐ ' + movie.imdbRatingValue + '</div>' : '';
                 
+                const badgeClass = type === 'series' ? 'series-badge' : 'movie-badge';
+                const badgeText = type === 'series' ? 'TV Series' : 'Movie';
+                const typeBadge = '<div class="content-type-badge ' + badgeClass + '">' + badgeText + '</div>';
+                
+                const isInList = userList.some(item => item.subjectId === movie.subjectId);
+                const listButtonText = isInList ? '<i class="fas fa-check"></i> In List' : '<i class="fas fa-plus"></i> My List';
+                const listButtonClass = isInList ? 'add-btn active' : 'add-btn';
+                
                 return '<div class="movie-card">' +
                     poster +
                     rating +
+                    typeBadge +
                     '<div class="movie-info">' +
                         '<div class="movie-title">' + (movie.title || 'Unknown Title') + '</div>' +
                         '<div class="movie-meta">' +
@@ -1462,6 +1956,9 @@ app.get('/', (req, res) => {
                             '</button>' +
                             '<button class="movie-action-btn download-btn" onclick="showDownloadModal(' + JSON.stringify(movie).replace(/"/g, '&quot;') + ')">' +
                                 '<i class="fas fa-download"></i> Download' +
+                            '</button>' +
+                            '<button class="movie-action-btn ' + listButtonClass + '" onclick="toggleMyList(' + JSON.stringify(movie).replace(/"/g, '&quot;') + ')">' +
+                                listButtonText +
                             '</button>' +
                         '</div>' +
                     '</div>' +
@@ -1488,6 +1985,12 @@ app.get('/', (req, res) => {
             if (movie.genre) {
                 heroGenre.textContent = movie.genre.split(',')[0];
             }
+            
+            // Update My List button state
+            const isInList = userList.some(item => item.subjectId === movie.subjectId);
+            heroAddToListBtn.innerHTML = isInList ? 
+                '<i class="fas fa-check"></i> In List' : 
+                '<i class="fas fa-plus"></i> My List';
         }
 
         // Show download modal
@@ -1497,7 +2000,7 @@ app.get('/', (req, res) => {
                 const data = await response.json();
                 
                 if (data.success && data.results && data.results.length > 0) {
-                    downloadMovieTitle.textContent = 'Download "' + movie.title + '"';
+                    downloadMovieTitle.textContent = 'Download "' + movie.title + '" with BeraTech';
                     
                     downloadQualityOptions.innerHTML = data.results.map(source => 
                         '<div class="quality-option-large" onclick="downloadMovie(\\'' + movie.subjectId + '\\', \\'' + movie.title + '\\', \\'' + source.quality + '\\', \\'' + source.download_url + '\\', \\'' + source.size + '\\')">' +
@@ -1516,13 +2019,13 @@ app.get('/', (req, res) => {
             }
         }
 
-        // Download movie function
+        // Download movie function with BeraTech branding
         async function downloadMovie(movieId, title, quality, url, size) {
             try {
-                // Create download link with Beraflix branding
+                // Create download link with BeraTech branding
                 const link = document.createElement('a');
                 link.href = url;
-                link.download = 'Beraflix_' + title.replace(/[^a-z0-9]/gi, '_') + '_' + quality + '.mp4';
+                link.download = 'BeraTech_' + title.replace(/[^a-z0-9]/gi, '_') + '_' + quality + '.mp4';
                 link.style.display = 'none';
                 
                 document.body.appendChild(link);
@@ -1544,8 +2047,8 @@ app.get('/', (req, res) => {
                 userDownloads = userDownloads.slice(0, 20);
                 localStorage.setItem('beraflix_downloads', JSON.stringify(userDownloads));
                 
-                // Show success message
-                alert('🎉 Download started!\\n\\n"' + title + '" - ' + quality + '\\n\\nSaved as: Beraflix_' + title.replace(/[^a-z0-9]/gi, '_') + '_' + quality + '.mp4\\n\\nThank you for using Beraflix! 🎬');
+                // Show success message with BeraTech branding
+                showNotification('🎉 Download started with BeraTech!');
                 
                 downloadModal.style.display = 'none';
                 updateDownloadsDisplay();
@@ -1559,14 +2062,14 @@ app.get('/', (req, res) => {
         // Play downloaded movie
         function playDownload(url) {
             videoElement.src = url;
-            playerTitle.textContent = 'Playing Downloaded Movie';
+            playerTitle.textContent = 'Playing Downloaded Movie - BeraTech';
             videoPlayer.classList.remove('hidden');
             videoElement.play();
         }
 
         // Redownload movie
         function redownloadMovie(movieId) {
-            const allMovies = [...trendingMovies, ...popularMovies, ...actionMovies, ...currentMovies];
+            const allMovies = [...trendingMovies, ...popularMovies, ...actionMovies, ...romanceMovies, ...seriesMovies, ...newReleases, ...currentMovies];
             const movie = allMovies.find(m => m.subjectId === movieId);
             if (movie) {
                 showDownloadModal(movie);
@@ -1575,7 +2078,7 @@ app.get('/', (req, res) => {
 
         // Show download options for current playing movie
         function showDownloadOptionsForCurrent() {
-            const allMovies = [...trendingMovies, ...popularMovies, ...actionMovies, ...currentMovies];
+            const allMovies = [...trendingMovies, ...popularMovies, ...actionMovies, ...romanceMovies, ...seriesMovies, ...newReleases, ...currentMovies];
             const currentMovieId = videoElement.src.includes('/api/') ? videoElement.src.split('/').pop() : null;
             const movie = allMovies.find(m => m.subjectId === currentMovieId);
             if (movie) {
@@ -1598,7 +2101,7 @@ app.get('/', (req, res) => {
                     
                     const videoSource = selectedSource.download_url;
                     
-                    const allMovies = [...trendingMovies, ...popularMovies, ...actionMovies, ...currentMovies];
+                    const allMovies = [...trendingMovies, ...popularMovies, ...actionMovies, ...romanceMovies, ...seriesMovies, ...newReleases, ...currentMovies];
                     const movie = allMovies.find(m => m.subjectId === movieId);
                     
                     videoElement.src = videoSource;
@@ -1666,9 +2169,7 @@ app.get('/', (req, res) => {
                 searchMovies(query);
             } else {
                 searchResultsRow.style.display = 'none';
-                document.getElementById('trendingRow').style.display = 'block';
-                document.getElementById('popularRow').style.display = 'block';
-                document.getElementById('actionRow').style.display = 'block';
+                document.getElementById('mainContent').style.display = 'block';
             }
         }
 
@@ -1679,10 +2180,13 @@ app.get('/', (req, res) => {
         window.downloadMovie = downloadMovie;
         window.playDownload = playDownload;
         window.redownloadMovie = redownloadMovie;
+        window.toggleMyList = toggleMyList;
         window.handleSearch = handleSearch;
         window.scrollRow = scrollRow;
         window.loadTrendingMovies = loadTrendingMovies;
         window.toggleDownloadsSection = toggleDownloadsSection;
+        window.switchCategory = switchCategory;
+        window.filterByGenre = filterByGenre;
     </script>
 </body>
 </html>
@@ -1790,7 +2294,7 @@ app.get('/health', (req, res) => {
     timestamp: new Date().toISOString(),
     service: 'Beraflix - Premium Streaming Platform',
     movie_api: MOVIE_API_BASE,
-    features: ['HD Streaming', 'Offline Downloads', '4K Content', 'Premium Experience']
+    features: ['HD Streaming', 'Offline Downloads', '4K Content', 'Premium Experience', 'BeraTech Downloads']
   });
 });
 
@@ -1800,7 +2304,9 @@ app.listen(PORT, () => {
   console.log(`📍 Visit: http://localhost:${PORT}`);
   console.log(`🎯 Movie API: ${MOVIE_API_BASE}`);
   console.log(`✨ Brand: BERAFLIX - The Ultimate Streaming Experience`);
-  console.log(`💫 Features: HD Streaming • Offline Downloads • 4K Content`);
+  console.log(`💫 Features: HD Streaming • Offline Downloads • 4K Content • BeraTech Downloads`);
+  console.log(`🎮 Categories: Movies • TV Series • New Releases • My List`);
+  console.log(`🎭 Genres: Action • Romance • Mystery • Adventure • and more!`);
 });
 
 module.exports = app;
