@@ -463,6 +463,42 @@ app.get('/', (req, res) => {
             box-shadow: 0 8px 30px rgba(255, 215, 0, 0.6);
         }
 
+        /* Genre Navigation */
+        .genre-nav {
+            display: flex;
+            gap: 1rem;
+            padding: 1rem 4%;
+            background: rgba(20,20,20,0.8);
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            overflow-x: auto;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+        }
+
+        .genre-nav::-webkit-scrollbar {
+            display: none;
+        }
+
+        .genre-btn {
+            background: rgba(255,255,255,0.1);
+            border: 2px solid transparent;
+            color: var(--bera-white);
+            padding: 0.8rem 1.5rem;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+
+        .genre-btn:hover, .genre-btn.active {
+            background: var(--bera-red);
+            border-color: var(--bera-red);
+            transform: translateY(-2px);
+            box-shadow: var(--bera-glow);
+        }
+
         /* Enhanced Content Rows */
         .content-rows {
             padding: 0 4% 5rem;
@@ -885,6 +921,75 @@ app.get('/', (req, res) => {
             transform: scale(1.05);
         }
 
+        /* Mobile Menu */
+        .mobile-menu-btn {
+            display: none;
+            background: none;
+            border: none;
+            color: var(--bera-white);
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+
+        .mobile-nav {
+            position: fixed;
+            top: 0;
+            left: -100%;
+            width: 80%;
+            height: 100%;
+            background: var(--bera-dark);
+            z-index: 2000;
+            transition: left 0.3s ease;
+            padding: 2rem;
+            overflow-y: auto;
+        }
+
+        .mobile-nav.active {
+            left: 0;
+        }
+
+        .mobile-nav-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid var(--bera-red);
+        }
+
+        .mobile-nav-logo {
+            font-family: 'Bebas Neue', cursive;
+            font-size: 2rem;
+            color: var(--bera-red);
+        }
+
+        .close-mobile-nav {
+            background: none;
+            border: none;
+            color: var(--bera-white);
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+
+        .mobile-nav-links {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .mobile-nav-link {
+            color: var(--bera-white);
+            text-decoration: none;
+            font-size: 1.2rem;
+            padding: 1rem;
+            border-radius: 8px;
+            transition: all 0.3s;
+        }
+
+        .mobile-nav-link:hover {
+            background: var(--bera-red);
+        }
+
         /* Responsive Design */
         @media (max-width: 1200px) {
             .hero-content { max-width: 55%; }
@@ -892,10 +997,12 @@ app.get('/', (req, res) => {
         }
 
         @media (max-width: 968px) {
-            .nav-links { display: none; }
+            .nav-links, .user-section .downloads-btn { display: none; }
+            .mobile-menu-btn { display: block; }
             .hero-content { max-width: 70%; }
             .hero-title { font-size: 3.5rem; }
             .movie-card { width: 300px; }
+            .search-input { width: 250px; }
         }
 
         @media (max-width: 768px) {
@@ -904,15 +1011,31 @@ app.get('/', (req, res) => {
             .hero-content { max-width: 85%; }
             .hero-title { font-size: 3rem; }
             .hero-description { font-size: 1.2rem; }
-            .movie-card { width: 250px; }
+            .movie-card { width: 280px; }
             .splash-logo { font-size: 5rem; }
+            .hero-buttons { flex-wrap: wrap; }
+            .play-btn, .info-btn, .download-hero-btn { 
+                padding: 0.8rem 1.5rem; 
+                font-size: 1.1rem;
+            }
+            .hero-meta { flex-wrap: wrap; gap: 1rem; }
+            .genre-nav { padding: 1rem 2%; }
+            .genre-btn { padding: 0.6rem 1.2rem; font-size: 0.9rem; }
         }
 
         @media (max-width: 480px) {
-            .search-input { width: 150px; }
+            .search-input { width: 150px; font-size: 0.9rem; }
+            .search-btn { padding: 0.8rem 1rem; font-size: 0.9rem; }
             .hero-title { font-size: 2.5rem; }
-            .hero-buttons { flex-direction: column; }
-            .movie-card { width: 200px; }
+            .hero-buttons { flex-direction: column; width: 100%; }
+            .play-btn, .info-btn, .download-hero-btn { width: 100%; justify-content: center; }
+            .movie-card { width: 250px; }
+            .content-rows { padding: 0 2% 3rem; }
+            .row { margin-bottom: 3rem; }
+            .row-title { font-size: 1.8rem; }
+            .downloads-grid { grid-template-columns: 1fr; }
+            .nav-logo { font-size: 2rem; }
+            .user-avatar { width: 35px; height: 35px; }
         }
 
         /* Scroll Buttons */
@@ -1000,8 +1123,41 @@ app.get('/', (req, res) => {
                         <i class="fas fa-crown"></i>
                     </div>
                 </div>
+                <button class="mobile-menu-btn" id="mobileMenuBtn">
+                    <i class="fas fa-bars"></i>
+                </button>
             </div>
         </nav>
+
+        <!-- Mobile Navigation -->
+        <div class="mobile-nav" id="mobileNav">
+            <div class="mobile-nav-header">
+                <div class="mobile-nav-logo">BERAFLIX</div>
+                <button class="close-mobile-nav" id="closeMobileNav">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="mobile-nav-links">
+                <a href="#" class="mobile-nav-link active">Home</a>
+                <a href="#" class="mobile-nav-link">Movies</a>
+                <a href="#" class="mobile-nav-link">TV Shows</a>
+                <a href="#" class="mobile-nav-link">New Releases</a>
+                <a href="#" class="mobile-nav-link">My List</a>
+                <a href="#" class="mobile-nav-link" id="mobileDownloadsBtn">My Downloads</a>
+            </div>
+        </div>
+
+        <!-- Genre Navigation -->
+        <div class="genre-nav">
+            <button class="genre-btn active" data-genre="all">All</button>
+            <button class="genre-btn" data-genre="action">Action</button>
+            <button class="genre-btn" data-genre="romance">Romance</button>
+            <button class="genre-btn" data-genre="thriller">Thrillers</button>
+            <button class="genre-btn" data-genre="adventure">Adventure</button>
+            <button class="genre-btn" data-genre="comedy">Comedy</button>
+            <button class="genre-btn" data-genre="drama">Drama</button>
+            <button class="genre-btn" data-genre="horror">Horror</button>
+        </div>
 
         <!-- Enhanced Hero Banner -->
         <section class="hero-banner" id="heroBanner">
@@ -1110,6 +1266,72 @@ app.get('/', (req, res) => {
                 </div>
             </section>
 
+            <!-- Romance Movies -->
+            <section class="row" id="romanceRow">
+                <div class="row-header">
+                    <h2 class="row-title">❤️ Romance</h2>
+                    <span class="premium-badge">HD</span>
+                </div>
+                <div class="row-content">
+                    <button class="scroll-btn scroll-left" onclick="scrollRow('romanceContainer', -400)">
+                        <i class="fas fa-chevron-left"></i>
+                    </button>
+                    <div class="movies-container" id="romanceContainer">
+                        <div class="loading">
+                            <div class="loading-spinner"></div>
+                            Loading romance movies...
+                        </div>
+                    </div>
+                    <button class="scroll-btn scroll-right" onclick="scrollRow('romanceContainer', 400)">
+                        <i class="fas fa-chevron-right"></i>
+                    </button>
+                </div>
+            </section>
+
+            <!-- Thriller Movies -->
+            <section class="row" id="thrillerRow">
+                <div class="row-header">
+                    <h2 class="row-title">🔪 Thrillers</h2>
+                    <span class="premium-badge">HD</span>
+                </div>
+                <div class="row-content">
+                    <button class="scroll-btn scroll-left" onclick="scrollRow('thrillerContainer', -400)">
+                        <i class="fas fa-chevron-left"></i>
+                    </button>
+                    <div class="movies-container" id="thrillerContainer">
+                        <div class="loading">
+                            <div class="loading-spinner"></div>
+                            Loading thriller movies...
+                        </div>
+                    </div>
+                    <button class="scroll-btn scroll-right" onclick="scrollRow('thrillerContainer', 400)">
+                        <i class="fas fa-chevron-right"></i>
+                    </button>
+                </div>
+            </section>
+
+            <!-- Adventure Movies -->
+            <section class="row" id="adventureRow">
+                <div class="row-header">
+                    <h2 class="row-title">🏔️ Adventure</h2>
+                    <span class="premium-badge">4K</span>
+                </div>
+                <div class="row-content">
+                    <button class="scroll-btn scroll-left" onclick="scrollRow('adventureContainer', -400)">
+                        <i class="fas fa-chevron-left"></i>
+                    </button>
+                    <div class="movies-container" id="adventureContainer">
+                        <div class="loading">
+                            <div class="loading-spinner"></div>
+                            Loading adventure movies...
+                        </div>
+                    </div>
+                    <button class="scroll-btn scroll-right" onclick="scrollRow('adventureContainer', 400)">
+                        <i class="fas fa-chevron-right"></i>
+                    </button>
+                </div>
+            </section>
+
             <!-- Search Results -->
             <section class="row" id="searchResultsRow" style="display: none;">
                 <div class="row-header">
@@ -1168,14 +1390,22 @@ app.get('/', (req, res) => {
         let trendingMovies = [];
         let popularMovies = [];
         let actionMovies = [];
+        let romanceMovies = [];
+        let thrillerMovies = [];
+        let adventureMovies = [];
         let currentHeroMovie = null;
         let currentMovieSources = [];
         let userDownloads = JSON.parse(localStorage.getItem('beraflix_downloads')) || [];
+        let currentGenre = 'all';
 
         // DOM Elements
         const splashScreen = document.getElementById('splashScreen');
         const app = document.getElementById('app');
         const navbar = document.getElementById('navbar');
+        const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+        const mobileNav = document.getElementById('mobileNav');
+        const closeMobileNav = document.getElementById('closeMobileNav');
+        const mobileDownloadsBtn = document.getElementById('mobileDownloadsBtn');
         const searchInput = document.getElementById('searchInput');
         const searchBtn = document.getElementById('searchBtn');
         const downloadsBtn = document.getElementById('downloadsBtn');
@@ -1194,6 +1424,9 @@ app.get('/', (req, res) => {
         const trendingContainer = document.getElementById('trendingContainer');
         const popularContainer = document.getElementById('popularContainer');
         const actionContainer = document.getElementById('actionContainer');
+        const romanceContainer = document.getElementById('romanceContainer');
+        const thrillerContainer = document.getElementById('thrillerContainer');
+        const adventureContainer = document.getElementById('adventureContainer');
         const searchResultsRow = document.getElementById('searchResultsRow');
         const searchResultsContainer = document.getElementById('searchResultsContainer');
         const videoPlayer = document.getElementById('videoPlayer');
@@ -1206,6 +1439,7 @@ app.get('/', (req, res) => {
         const downloadMovieTitle = document.getElementById('downloadMovieTitle');
         const downloadQualityOptions = document.getElementById('downloadQualityOptions');
         const closeDownloadModal = document.getElementById('closeDownloadModal');
+        const genreButtons = document.querySelectorAll('.genre-btn');
 
         // Initialize App
         document.addEventListener('DOMContentLoaded', async () => {
@@ -1223,13 +1457,30 @@ app.get('/', (req, res) => {
         }
 
         function setupEventListeners() {
+            // Mobile menu
+            mobileMenuBtn.addEventListener('click', () => {
+                mobileNav.classList.add('active');
+            });
+
+            closeMobileNav.addEventListener('click', () => {
+                mobileNav.classList.remove('active');
+            });
+
+            mobileDownloadsBtn.addEventListener('click', () => {
+                mobileNav.classList.remove('active');
+                toggleDownloadsSection();
+            });
+
+            // Search functionality
             searchBtn.addEventListener('click', handleSearch);
             searchInput.addEventListener('keypress', (e) => {
                 if (e.key === 'Enter') handleSearch();
             });
 
+            // Downloads
             downloadsBtn.addEventListener('click', toggleDownloadsSection);
 
+            // Video player
             closePlayer.addEventListener('click', () => {
                 videoPlayer.classList.add('hidden');
                 videoElement.pause();
@@ -1238,6 +1489,7 @@ app.get('/', (req, res) => {
 
             downloadPlayerBtn.addEventListener('click', showDownloadOptionsForCurrent);
 
+            // Navbar scroll effect
             window.addEventListener('scroll', () => {
                 if (window.scrollY > 100) {
                     navbar.classList.add('scrolled');
@@ -1246,6 +1498,7 @@ app.get('/', (req, res) => {
                 }
             });
 
+            // Hero buttons
             heroPlayBtn.addEventListener('click', () => {
                 if (currentHeroMovie) {
                     playMovie(currentHeroMovie.subjectId);
@@ -1264,6 +1517,16 @@ app.get('/', (req, res) => {
                 }
             });
 
+            // Genre filtering
+            genreButtons.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    genreButtons.forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    currentGenre = btn.dataset.genre;
+                    filterByGenre(currentGenre);
+                });
+            });
+
             // Quality selector
             document.querySelectorAll('.quality-option').forEach(option => {
                 option.addEventListener('click', (e) => {
@@ -1274,6 +1537,28 @@ app.get('/', (req, res) => {
 
             closeDownloadModal.addEventListener('click', () => {
                 downloadModal.style.display = 'none';
+            });
+        }
+
+        // Filter movies by genre
+        function filterByGenre(genre) {
+            const allRows = document.querySelectorAll('.row');
+            
+            if (genre === 'all') {
+                allRows.forEach(row => {
+                    if (!row.id.includes('Results')) {
+                        row.style.display = 'block';
+                    }
+                });
+                return;
+            }
+
+            allRows.forEach(row => {
+                if (row.id === genre + 'Row' || row.id.includes('Results')) {
+                    row.style.display = 'block';
+                } else if (!row.id.includes('Results')) {
+                    row.style.display = 'none';
+                }
             });
         }
 
@@ -1330,6 +1615,9 @@ app.get('/', (req, res) => {
             await loadTrendingMovies();
             await loadPopularMovies();
             await loadActionMovies();
+            await loadRomanceMovies();
+            await loadThrillerMovies();
+            await loadAdventureMovies();
         }
 
         // Load trending movies
@@ -1405,6 +1693,66 @@ app.get('/', (req, res) => {
             }
         }
 
+        // Load romance movies
+        async function loadRomanceMovies() {
+            try {
+                romanceContainer.innerHTML = '<div class="loading"><div class="loading-spinner"></div>Loading romance movies...</div>';
+                
+                const response = await fetch('/api/search/romance');
+                const data = await response.json();
+                
+                if (data.success && data.results && data.results.items.length > 0) {
+                    romanceMovies = data.results.items.slice(0, 12);
+                    displayMovies(romanceMovies, romanceContainer);
+                } else {
+                    romanceContainer.innerHTML = '<div class="error-message">No romance movies found.</div>';
+                }
+            } catch (error) {
+                console.error('Error loading romance movies:', error);
+                romanceContainer.innerHTML = '<div class="error-message">Error loading romance movies.</div>';
+            }
+        }
+
+        // Load thriller movies
+        async function loadThrillerMovies() {
+            try {
+                thrillerContainer.innerHTML = '<div class="loading"><div class="loading-spinner"></div>Loading thriller movies...</div>';
+                
+                const response = await fetch('/api/search/thriller');
+                const data = await response.json();
+                
+                if (data.success && data.results && data.results.items.length > 0) {
+                    thrillerMovies = data.results.items.slice(0, 12);
+                    displayMovies(thrillerMovies, thrillerContainer);
+                } else {
+                    thrillerContainer.innerHTML = '<div class="error-message">No thriller movies found.</div>';
+                }
+            } catch (error) {
+                console.error('Error loading thriller movies:', error);
+                thrillerContainer.innerHTML = '<div class="error-message">Error loading thriller movies.</div>';
+            }
+        }
+
+        // Load adventure movies
+        async function loadAdventureMovies() {
+            try {
+                adventureContainer.innerHTML = '<div class="loading"><div class="loading-spinner"></div>Loading adventure movies...</div>';
+                
+                const response = await fetch('/api/search/adventure');
+                const data = await response.json();
+                
+                if (data.success && data.results && data.results.items.length > 0) {
+                    adventureMovies = data.results.items.slice(0, 12);
+                    displayMovies(adventureMovies, adventureContainer);
+                } else {
+                    adventureContainer.innerHTML = '<div class="error-message">No adventure movies found.</div>';
+                }
+            } catch (error) {
+                console.error('Error loading adventure movies:', error);
+                adventureContainer.innerHTML = '<div class="error-message">Error loading adventure movies.</div>';
+            }
+        }
+
         // Search movies
         async function searchMovies(query) {
             try {
@@ -1414,6 +1762,9 @@ app.get('/', (req, res) => {
                 document.getElementById('trendingRow').style.display = 'none';
                 document.getElementById('popularRow').style.display = 'none';
                 document.getElementById('actionRow').style.display = 'none';
+                document.getElementById('romanceRow').style.display = 'none';
+                document.getElementById('thrillerRow').style.display = 'none';
+                document.getElementById('adventureRow').style.display = 'none';
                 downloadsSection.style.display = 'none';
                 
                 const response = await fetch('/api/search/' + encodeURIComponent(query));
@@ -1566,7 +1917,7 @@ app.get('/', (req, res) => {
 
         // Redownload movie
         function redownloadMovie(movieId) {
-            const allMovies = [...trendingMovies, ...popularMovies, ...actionMovies, ...currentMovies];
+            const allMovies = [...trendingMovies, ...popularMovies, ...actionMovies, ...romanceMovies, ...thrillerMovies, ...adventureMovies, ...currentMovies];
             const movie = allMovies.find(m => m.subjectId === movieId);
             if (movie) {
                 showDownloadModal(movie);
@@ -1575,7 +1926,7 @@ app.get('/', (req, res) => {
 
         // Show download options for current playing movie
         function showDownloadOptionsForCurrent() {
-            const allMovies = [...trendingMovies, ...popularMovies, ...actionMovies, ...currentMovies];
+            const allMovies = [...trendingMovies, ...popularMovies, ...actionMovies, ...romanceMovies, ...thrillerMovies, ...adventureMovies, ...currentMovies];
             const currentMovieId = videoElement.src.includes('/api/') ? videoElement.src.split('/').pop() : null;
             const movie = allMovies.find(m => m.subjectId === currentMovieId);
             if (movie) {
@@ -1598,7 +1949,7 @@ app.get('/', (req, res) => {
                     
                     const videoSource = selectedSource.download_url;
                     
-                    const allMovies = [...trendingMovies, ...popularMovies, ...actionMovies, ...currentMovies];
+                    const allMovies = [...trendingMovies, ...popularMovies, ...actionMovies, ...romanceMovies, ...thrillerMovies, ...adventureMovies, ...currentMovies];
                     const movie = allMovies.find(m => m.subjectId === movieId);
                     
                     videoElement.src = videoSource;
@@ -1669,6 +2020,9 @@ app.get('/', (req, res) => {
                 document.getElementById('trendingRow').style.display = 'block';
                 document.getElementById('popularRow').style.display = 'block';
                 document.getElementById('actionRow').style.display = 'block';
+                document.getElementById('romanceRow').style.display = 'block';
+                document.getElementById('thrillerRow').style.display = 'block';
+                document.getElementById('adventureRow').style.display = 'block';
             }
         }
 
@@ -1683,6 +2037,7 @@ app.get('/', (req, res) => {
         window.scrollRow = scrollRow;
         window.loadTrendingMovies = loadTrendingMovies;
         window.toggleDownloadsSection = toggleDownloadsSection;
+        window.filterByGenre = filterByGenre;
     </script>
 </body>
 </html>
@@ -1726,7 +2081,7 @@ app.get('/api/info/:id', async (req, res) => {
     const movieId = req.params.id;
     console.log('Fetching movie info for:', movieId);
     
-    const response = await fetch(`${MOVIE_API_BASE}/info/${movieId}`);
+    const response = await fetch(`${MOVIE_API_API_BASE}/info/${movieId}`);
     const data = await response.json();
     
     console.log('Movie info response:', data.results ? 'Found' : 'Not found');
@@ -1790,7 +2145,7 @@ app.get('/health', (req, res) => {
     timestamp: new Date().toISOString(),
     service: 'Beraflix - Premium Streaming Platform',
     movie_api: MOVIE_API_BASE,
-    features: ['HD Streaming', 'Offline Downloads', '4K Content', 'Premium Experience']
+    features: ['HD Streaming', 'Offline Downloads', '4K Content', 'Premium Experience', 'Genre Filtering']
   });
 });
 
@@ -1800,7 +2155,8 @@ app.listen(PORT, () => {
   console.log(`📍 Visit: http://localhost:${PORT}`);
   console.log(`🎯 Movie API: ${MOVIE_API_BASE}`);
   console.log(`✨ Brand: BERAFLIX - The Ultimate Streaming Experience`);
-  console.log(`💫 Features: HD Streaming • Offline Downloads • 4K Content`);
+  console.log(`💫 Features: HD Streaming • Offline Downloads • 4K Content • Genre Filtering`);
+  console.log(`🎭 Genres: Action, Romance, Thrillers, Adventure & More`);
 });
 
 module.exports = app;
