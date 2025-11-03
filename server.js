@@ -19,23 +19,6 @@ const MOVIE_API_BASE = 'https://movieapi.giftedtech.co.ke/api';
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Enhanced Content Categories
-const CONTENT_CATEGORIES = {
-  movies: 'Movies',
-  series: 'TV Series',
-  tvshows: 'TV Shows',
-  newreleases: 'New Releases',
-  trending: 'Trending Now',
-  popular: 'Popular',
-  mylist: 'My List'
-};
-
-const GENRES = [
-  'Action', 'Adventure', 'Romance', 'Mystery', 'Thriller', 
-  'Comedy', 'Drama', 'Horror', 'Sci-Fi', 'Fantasy',
-  'Animation', 'Documentary', 'Crime', 'Family', 'Western'
-];
-
 // Serve main HTML with enhanced Beraflix design
 app.get('/', (req, res) => {
   res.send(`
@@ -1486,7 +1469,7 @@ app.get('/', (req, res) => {
             // Navigation
             downloadsBtn.addEventListener('click', toggleDownloadsSection);
 
-            // Category navigation
+            // Category navigation - FIXED SYNTAX
             document.querySelectorAll('.nav-link').forEach(link => {
                 link.addEventListener('click', (e) => {
                     e.preventDefault();
@@ -1559,15 +1542,18 @@ app.get('/', (req, res) => {
             });
         }
 
-        // Switch category
+        // Switch category - FIXED SYNTAX
         function switchCategory(category) {
             currentCategory = category;
             
-            // Update active nav link
+            // Update active nav link - FIXED: Proper string concatenation
             document.querySelectorAll('.nav-link').forEach(link => {
                 link.classList.remove('active');
             });
-            document.querySelector(`[data-category="${category}"]`).classList.add('active');
+            var activeLink = document.querySelector('[data-category="' + category + '"]');
+            if (activeLink) {
+                activeLink.classList.add('active');
+            }
 
             // Show/hide sections based on category
             const mainContent = document.getElementById('mainContent');
@@ -1592,15 +1578,18 @@ app.get('/', (req, res) => {
             }
         }
 
-        // Filter by genre
+        // Filter by genre - FIXED SYNTAX
         function filterByGenre(genre) {
             currentGenre = genre;
             
-            // Update active filter button
+            // Update active filter button - FIXED: Proper string concatenation
             document.querySelectorAll('.filter-btn').forEach(btn => {
                 btn.classList.remove('active');
             });
-            document.querySelector(`[data-genre="${genre}"]`).classList.add('active');
+            var activeBtn = document.querySelector('[data-genre="' + genre + '"]');
+            if (activeBtn) {
+                activeBtn.classList.add('active');
+            }
 
             // Filter content
             filterContent();
@@ -1648,52 +1637,42 @@ app.get('/', (req, res) => {
             }
         }
 
-        // Update downloads display
+        // Update downloads display - FIXED: Proper string concatenation
         function updateDownloadsDisplay() {
             if (userDownloads.length === 0) {
-                downloadsGrid.innerHTML = `
-                    <div style="grid-column: 1 / -1; text-align: center; padding: 3rem; color: var(--bera-light);">
-                        <i class="fas fa-download" style="font-size: 3rem; margin-bottom: 1rem; display: block;"></i>
-                        <h3>No Downloads Yet</h3>
-                        <p>Download movies to watch them offline</p>
-                    </div>`;
+                downloadsGrid.innerHTML = '<div style="grid-column: 1 / -1; text-align: center; padding: 3rem; color: var(--bera-light);"><i class="fas fa-download" style="font-size: 3rem; margin-bottom: 1rem; display: block;"></i><h3>No Downloads Yet</h3><p>Download movies to watch them offline</p></div>';
                 return;
             }
 
-            downloadsGrid.innerHTML = userDownloads.map(download => 
-                `<div class="download-item">
-                    <div class="download-item-header">
-                        <div class="download-title">${download.title}</div>
-                        <div class="download-quality">${download.quality}</div>
-                    </div>
-                    <div class="download-meta">
-                        <div>Size: ${download.size}</div>
-                        <div>Downloaded: ${new Date(download.timestamp).toLocaleDateString()}</div>
-                    </div>
-                    <div class="download-progress">
-                        <div class="download-progress-bar" style="width: 100%"></div>
-                    </div>
-                    <div class="download-actions">
-                        <button class="movie-action-btn watch-btn" onclick="playDownload('${download.url}')">
-                            <i class="fas fa-play"></i> Play
-                        </button>
-                        <button class="movie-action-btn download-btn" onclick="redownloadMovie('${download.movieId}')">
-                            <i class="fas fa-redo"></i> Re-download
-                        </button>
-                    </div>
-                </div>`
-            ).join('');
+            downloadsGrid.innerHTML = userDownloads.map(function(download) {
+                return '<div class="download-item">' +
+                    '<div class="download-item-header">' +
+                        '<div class="download-title">' + download.title + '</div>' +
+                        '<div class="download-quality">' + download.quality + '</div>' +
+                    '</div>' +
+                    '<div class="download-meta">' +
+                        '<div>Size: ' + download.size + '</div>' +
+                        '<div>Downloaded: ' + new Date(download.timestamp).toLocaleDateString() + '</div>' +
+                    '</div>' +
+                    '<div class="download-progress">' +
+                        '<div class="download-progress-bar" style="width: 100%"></div>' +
+                    '</div>' +
+                    '<div class="download-actions">' +
+                        '<button class="movie-action-btn watch-btn" onclick="playDownload(\'' + download.url + '\')">' +
+                            '<i class="fas fa-play"></i> Play' +
+                        '</button>' +
+                        '<button class="movie-action-btn download-btn" onclick="redownloadMovie(\'' + download.movieId + '\')">' +
+                            '<i class="fas fa-redo"></i> Re-download' +
+                        '</button>' +
+                    '</div>' +
+                '</div>';
+            }).join('');
         }
 
-        // Update My List display
+        // Update My List display - FIXED: Proper string concatenation
         function updateMyListDisplay() {
             if (userList.length === 0) {
-                myListContainer.innerHTML = `
-                    <div class="empty-list">
-                        <i class="fas fa-bookmark"></i>
-                        <h3>Your List is Empty</h3>
-                        <p>Add movies and TV shows to your list to watch later</p>
-                    </div>`;
+                myListContainer.innerHTML = '<div class="empty-list"><i class="fas fa-bookmark"></i><h3>Your List is Empty</h3><p>Add movies and TV shows to your list to watch later</p></div>';
                 return;
             }
 
@@ -1702,7 +1681,9 @@ app.get('/', (req, res) => {
 
         // Toggle item in My List
         function toggleMyList(movie) {
-            const existingIndex = userList.findIndex(item => item.subjectId === movie.subjectId);
+            const existingIndex = userList.findIndex(function(item) { 
+                return item.subjectId === movie.subjectId; 
+            });
             
             if (existingIndex > -1) {
                 userList.splice(existingIndex, 1);
@@ -1716,7 +1697,9 @@ app.get('/', (req, res) => {
             updateMyListDisplay();
             
             // Update button state
-            const isInList = userList.some(item => item.subjectId === movie.subjectId);
+            const isInList = userList.some(function(item) { 
+                return item.subjectId === movie.subjectId; 
+            });
             heroAddToListBtn.innerHTML = isInList ? 
                 '<i class="fas fa-check"></i> In List' : 
                 '<i class="fas fa-plus"></i> My List';
@@ -1727,7 +1710,7 @@ app.get('/', (req, res) => {
             notificationText.textContent = message;
             notification.classList.add('show');
             
-            setTimeout(() => {
+            setTimeout(function() {
                 notification.classList.remove('show');
             }, 3000);
         }
@@ -1916,14 +1899,16 @@ app.get('/', (req, res) => {
             }
         }
 
-        // Display movies with enhanced cards
-        function displayMovies(movies, container, type = 'movie') {
+        // Display movies with enhanced cards - FIXED: Proper string concatenation
+        function displayMovies(movies, container, type) {
             if (!movies || movies.length === 0) {
                 container.innerHTML = '<div class="error-message">No movies to display</div>';
                 return;
             }
 
-            container.innerHTML = movies.map(movie => {
+            type = type || 'movie';
+
+            container.innerHTML = movies.map(function(movie) {
                 const poster = movie.cover && movie.cover.url ? 
                     '<img src="' + movie.cover.url + '" alt="' + movie.title + '" class="movie-poster">' :
                     '<div style="background: var(--bera-gradient); height: 200px; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 1.2rem;">BERAFLIX</div>';
@@ -1934,9 +1919,14 @@ app.get('/', (req, res) => {
                 const badgeText = type === 'series' ? 'TV Series' : 'Movie';
                 const typeBadge = '<div class="content-type-badge ' + badgeClass + '">' + badgeText + '</div>';
                 
-                const isInList = userList.some(item => item.subjectId === movie.subjectId);
+                const isInList = userList.some(function(item) { 
+                    return item.subjectId === movie.subjectId; 
+                });
                 const listButtonText = isInList ? '<i class="fas fa-check"></i> In List' : '<i class="fas fa-plus"></i> My List';
                 const listButtonClass = isInList ? 'add-btn active' : 'add-btn';
+                
+                // Properly escape quotes for onclick attributes
+                const movieJson = JSON.stringify(movie).replace(/"/g, '&quot;');
                 
                 return '<div class="movie-card">' +
                     poster +
@@ -1951,13 +1941,13 @@ app.get('/', (req, res) => {
                         '</div>' +
                         '<div class="movie-description">' + (movie.description || 'Experience premium streaming with Beraflix') + '</div>' +
                         '<div class="movie-actions">' +
-                            '<button class="movie-action-btn watch-btn" onclick="playMovie(\\'' + movie.subjectId + '\\')">' +
+                            '<button class="movie-action-btn watch-btn" onclick="playMovie(\'' + movie.subjectId + '\')">' +
                                 '<i class="fas fa-play"></i> Watch' +
                             '</button>' +
-                            '<button class="movie-action-btn download-btn" onclick="showDownloadModal(' + JSON.stringify(movie).replace(/"/g, '&quot;') + ')">' +
+                            '<button class="movie-action-btn download-btn" onclick="showDownloadModal(' + movieJson + ')">' +
                                 '<i class="fas fa-download"></i> Download' +
                             '</button>' +
-                            '<button class="movie-action-btn ' + listButtonClass + '" onclick="toggleMyList(' + JSON.stringify(movie).replace(/"/g, '&quot;') + ')">' +
+                            '<button class="movie-action-btn ' + listButtonClass + '" onclick="toggleMyList(' + movieJson + ')">' +
                                 listButtonText +
                             '</button>' +
                         '</div>' +
@@ -1987,7 +1977,9 @@ app.get('/', (req, res) => {
             }
             
             // Update My List button state
-            const isInList = userList.some(item => item.subjectId === movie.subjectId);
+            const isInList = userList.some(function(item) { 
+                return item.subjectId === movie.subjectId; 
+            });
             heroAddToListBtn.innerHTML = isInList ? 
                 '<i class="fas fa-check"></i> In List' : 
                 '<i class="fas fa-plus"></i> My List';
@@ -2002,12 +1994,12 @@ app.get('/', (req, res) => {
                 if (data.success && data.results && data.results.length > 0) {
                     downloadMovieTitle.textContent = 'Download "' + movie.title + '" with BeraTech';
                     
-                    downloadQualityOptions.innerHTML = data.results.map(source => 
-                        '<div class="quality-option-large" onclick="downloadMovie(\\'' + movie.subjectId + '\\', \\'' + movie.title + '\\', \\'' + source.quality + '\\', \\'' + source.download_url + '\\', \\'' + source.size + '\\')">' +
+                    downloadQualityOptions.innerHTML = data.results.map(function(source) {
+                        return '<div class="quality-option-large" onclick="downloadMovie(\'' + movie.subjectId + '\', \'' + movie.title + '\', \'' + source.quality + '\', \'' + source.download_url + '\', \'' + source.size + '\')">' +
                             '<span>' + source.quality + ' Quality</span>' +
                             '<span>' + formatFileSize(source.size) + '</span>' +
-                        '</div>'
-                    ).join('');
+                        '</div>';
+                    }).join('');
                     
                     downloadModal.style.display = 'flex';
                 } else {
@@ -2069,8 +2061,10 @@ app.get('/', (req, res) => {
 
         // Redownload movie
         function redownloadMovie(movieId) {
-            const allMovies = [...trendingMovies, ...popularMovies, ...actionMovies, ...romanceMovies, ...seriesMovies, ...newReleases, ...currentMovies];
-            const movie = allMovies.find(m => m.subjectId === movieId);
+            const allMovies = [].concat(trendingMovies, popularMovies, actionMovies, romanceMovies, seriesMovies, newReleases, currentMovies);
+            const movie = allMovies.find(function(m) { 
+                return m.subjectId === movieId; 
+            });
             if (movie) {
                 showDownloadModal(movie);
             }
@@ -2078,9 +2072,11 @@ app.get('/', (req, res) => {
 
         // Show download options for current playing movie
         function showDownloadOptionsForCurrent() {
-            const allMovies = [...trendingMovies, ...popularMovies, ...actionMovies, ...romanceMovies, ...seriesMovies, ...newReleases, ...currentMovies];
+            const allMovies = [].concat(trendingMovies, popularMovies, actionMovies, romanceMovies, seriesMovies, newReleases, currentMovies);
             const currentMovieId = videoElement.src.includes('/api/') ? videoElement.src.split('/').pop() : null;
-            const movie = allMovies.find(m => m.subjectId === currentMovieId);
+            const movie = allMovies.find(function(m) { 
+                return m.subjectId === currentMovieId; 
+            });
             if (movie) {
                 showDownloadModal(movie);
             }
@@ -2095,21 +2091,23 @@ app.get('/', (req, res) => {
                 if (data.success && data.results && data.results.length > 0) {
                     currentMovieSources = data.results;
                     
-                    let selectedSource = data.results.find(source => source.quality === '720p') ||
-                                       data.results.find(source => source.quality === '480p') ||
+                    let selectedSource = data.results.find(function(source) { return source.quality === '720p'; }) ||
+                                       data.results.find(function(source) { return source.quality === '480p'; }) ||
                                        data.results[0];
                     
                     const videoSource = selectedSource.download_url;
                     
-                    const allMovies = [...trendingMovies, ...popularMovies, ...actionMovies, ...romanceMovies, ...seriesMovies, ...newReleases, ...currentMovies];
-                    const movie = allMovies.find(m => m.subjectId === movieId);
+                    const allMovies = [].concat(trendingMovies, popularMovies, actionMovies, romanceMovies, seriesMovies, newReleases, currentMovies);
+                    const movie = allMovies.find(function(m) { 
+                        return m.subjectId === movieId; 
+                    });
                     
                     videoElement.src = videoSource;
                     playerTitle.textContent = movie ? movie.title + ' - Beraflix' : 'Now Playing on Beraflix';
                     videoPlayer.classList.remove('hidden');
                     
                     qualitySelector.style.display = 'block';
-                    videoElement.play().catch(e => {
+                    videoElement.play().catch(function(e) {
                         console.log('Autoplay prevented:', e);
                     });
                 } else {
@@ -2147,7 +2145,9 @@ app.get('/', (req, res) => {
 
         // Select video quality
         function selectQuality(quality) {
-            const source = currentMovieSources.find(s => s.quality === quality);
+            const source = currentMovieSources.find(function(s) { 
+                return s.quality === quality; 
+            });
             if (source) {
                 videoElement.src = source.download_url;
                 videoElement.play();
