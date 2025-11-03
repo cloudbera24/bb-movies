@@ -624,28 +624,27 @@ app.get('/', (req, res) => {
 
             const moviesHTML = movies.map(movie => {
                 const posterUrl = getOptimizedImageUrl(movie.poster, 280, 180);
+                const safeTitle = movie.title.replace(/'/g, "\\'");
                 
-                return `
-                    <div class="movie-card" onclick="playMovie('${movie.id}', '${movie.title}')">
-                        <img 
-                            data-src="${posterUrl}" 
-                            class="lazy-image placeholder-poster"
-                            alt="${movie.title}"
-                            style="width: 100%; height: 180px;"
-                            onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjgwIiBoZWlnaHQ9IjE4MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjMzMzIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzhjOGM4YyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPkJFUkFGTElYPC90ZXh0Pjwvc3ZnPg=='"
-                        >
-                        <div class="movie-info">
-                            <div class="movie-title">${movie.title}</div>
-                            <div class="movie-meta">
-                                <span>${movie.year || '2024'}</span>
-                                <span>${movie.quality || preferredQuality}</span>
-                            </div>
-                            <div style="font-size: 0.8rem; color: var(--bera-light);">
-                                ${getDataSizeEstimate(movie.duration)}
-                            </div>
-                        </div>
-                    </div>
-                `;
+                return '<div class="movie-card" onclick="playMovie(\\'' + movie.id + '\\', \\'' + safeTitle + '\\')">' +
+                    '<img ' +
+                        'data-src="' + posterUrl + '" ' +
+                        'class="lazy-image placeholder-poster" ' +
+                        'alt="' + movie.title + '" ' +
+                        'style="width: 100%; height: 180px;" ' +
+                        'onerror="this.src=\\'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjgwIiBoZWlnaHQ9IjE4MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjMzMzIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzhjOGM4YyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPkJFUkFGTElYPC90ZXh0Pjwvc3ZnPg==\\'"' +
+                    '>' +
+                    '<div class="movie-info">' +
+                        '<div class="movie-title">' + movie.title + '</div>' +
+                        '<div class="movie-meta">' +
+                            '<span>' + (movie.year || '2024') + '</span>' +
+                            '<span>' + (movie.quality || preferredQuality) + '</span>' +
+                        '</div>' +
+                        '<div style="font-size: 0.8rem; color: var(--bera-light);">' +
+                            getDataSizeEstimate(movie.duration) +
+                        '</div>' +
+                    '</div>' +
+                '</div>';
             }).join('');
 
             container.innerHTML = moviesHTML;
@@ -694,13 +693,13 @@ app.get('/', (req, res) => {
                     sizeMB = Math.round(durationInHours * 150);
             }
             
-            return `~${sizeMB}MB`;
+            return '~' + sizeMB + 'MB';
         }
 
         function updateDataEstimate() {
-            document.getElementById('dataEstimate').textContent = 
-                preferredQuality === '360p' ? '~150MB/hour' :
-                preferredQuality === '480p' ? '~300MB/hour' : '~700MB/hour';
+            const estimate = preferredQuality === '360p' ? '~150MB/hour' :
+                           preferredQuality === '480p' ? '~300MB/hour' : '~700MB/hour';
+            document.getElementById('dataEstimate').textContent = estimate;
         }
 
         function trackDataUsage(response) {
@@ -714,7 +713,7 @@ app.get('/', (req, res) => {
 
         function updateDataUsageDisplay() {
             const dataUsageEl = document.getElementById('dataUsage');
-            dataUsageEl.textContent = `${Math.round(dataUsed)} MB used`;
+            dataUsageEl.textContent = Math.round(dataUsed) + ' MB used';
             
             if (dataUsed > 0) {
                 dataUsageEl.style.display = 'block';
@@ -761,7 +760,7 @@ app.get('/', (req, res) => {
             if (!query) return;
 
             try {
-                const response = await fetch(`/api/movies/search?q=${encodeURIComponent(query)}&limit=12`);
+                const response = await fetch('/api/movies/search?q=' + encodeURIComponent(query) + '&limit=12');
                 const data = await response.json();
                 
                 if (data.success) {
@@ -774,10 +773,8 @@ app.get('/', (req, res) => {
                         document.querySelector('main').prepend(searchSection);
                     }
                     
-                    searchSection.innerHTML = `
-                        <h2 style="font-size: 1.8rem; margin-bottom: 1rem;">Search Results for "${query}"</h2>
-                        <div class="movies-container" id="searchResultsContainer"></div>
-                    `;
+                    searchSection.innerHTML = '<h2 style="font-size: 1.8rem; margin-bottom: 1rem;">Search Results for "' + query + '"</h2>' +
+                        '<div class="movies-container" id="searchResultsContainer"></div>';
                     
                     displayOptimizedMovies(data.movies, document.getElementById('searchResultsContainer'));
                     trackDataUsage(response);
@@ -789,11 +786,11 @@ app.get('/', (req, res) => {
 
         function playMovie(movieId, title) {
             // Show quality selection before playing
-            const play = confirm(`Play "${title}" in ${preferredQuality}?\n\nData estimate: ${getDataSizeEstimate(120)}\n\nChange quality in Data Saver settings.`);
+            const play = confirm('Play "' + title + '" in ' + preferredQuality + '?\\n\\nData estimate: ' + getDataSizeEstimate(120) + '\\n\\nChange quality in Data Saver settings.');
             
             if (play) {
                 // Simulate playing movie with selected quality
-                alert(`Now playing: ${title}\nQuality: ${preferredQuality}\nData optimized for your connection.`);
+                alert('Now playing: ' + title + '\\nQuality: ' + preferredQuality + '\\nData optimized for your connection.');
                 
                 // In real implementation, this would load the video player
                 // with the selected quality stream
@@ -809,7 +806,7 @@ app.get('/', (req, res) => {
                 "Stream during off-peak hours for better speeds"
             ];
             
-            alert("💡 Data Saving Tips:\n\n" + tips.join('\n• '));
+            alert("💡 Data Saving Tips:\\n\\n• " + tips.join('\\n• '));
         }
 
         // Global functions
@@ -846,7 +843,7 @@ app.get('/api/movies/trending', async (req, res) => {
       success: true, 
       movies,
       data_optimized: true,
-      message: `Showing ${movies.length} movies optimized for data saving`
+      message: 'Showing ' + movies.length + ' movies optimized for data saving'
     });
   } catch (error) {
     console.error('Trending movies error:', error);
@@ -1000,7 +997,7 @@ app.post('/api/analytics/data-usage', (req, res) => {
   // Track user data usage patterns for optimization
   const { sessionId, dataUsed, quality, duration } = req.body;
   
-  console.log(`Data Usage - Session: ${sessionId}, Used: ${dataUsed}MB, Quality: ${quality}, Duration: ${duration}min`);
+  console.log('Data Usage - Session: ' + sessionId + ', Used: ' + dataUsed + 'MB, Quality: ' + quality + ', Duration: ' + duration + 'min');
   
   res.json({ 
     success: true, 
@@ -1032,11 +1029,11 @@ app.get('/health', (req, res) => {
 
 // Start optimized server
 app.listen(PORT, () => {
-  console.log(`🎬 Beraflix Data-Optimized Server running on port ${PORT}`);
-  console.log(`📍 Visit: http://localhost:${PORT}`);
-  console.log(`💡 Features: Data Saver Mode • 360p Default • Lazy Loading • Usage Monitoring`);
-  console.log(`📊 Data Reduction: 50-70% less data usage`);
-  console.log(`📱 Optimized for: Limited bandwidth • Mobile data • Slow connections`);
+  console.log('🎬 Beraflix Data-Optimized Server running on port ' + PORT);
+  console.log('📍 Visit: http://localhost:' + PORT);
+  console.log('💡 Features: Data Saver Mode • 360p Default • Lazy Loading • Usage Monitoring');
+  console.log('📊 Data Reduction: 50-70% less data usage');
+  console.log('📱 Optimized for: Limited bandwidth • Mobile data • Slow connections');
 });
 
 module.exports = app;
