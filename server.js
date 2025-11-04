@@ -1102,13 +1102,14 @@ app.get('/', (req, res) => {
 
         // Display Functions
         function displayMovies(movies, container) {
-            container.innerHTML = movies.map(movie => {
+            let html = '';
+            movies.forEach(movie => {
                 const title = movie.title || 'Unknown Title';
                 const description = movie.description || 'No description available';
                 const cover = movie.cover?.url || '';
                 const subjectId = movie.subjectId || '';
                 
-                return `
+                html += `
                 <div class="content-card">
                     <img src="${cover}" alt="${title}" class="card-image" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZTA5MTE0Ii8+PC9zdmc+'">
                     <div class="card-content">
@@ -1118,23 +1119,25 @@ app.get('/', (req, res) => {
                             <button class="action-btn watch-btn" onclick="playMovie('${subjectId}')">
                                 <i class="fas fa-play"></i> Watch
                             </button>
-                            <button class="action-btn download-btn" onclick="showDownloadModal('${subjectId}', '${title.replace(/'/g, "\\'")}')">
+                            <button class="action-btn download-btn" onclick="showDownloadModal('${subjectId}', '${title.replace(/'/g, "\\\\'")}')">
                                 <i class="fas fa-download"></i> Download
                             </button>
                         </div>
                     </div>
                 </div>
                 `;
-            }).join('');
+            });
+            container.innerHTML = html;
         }
 
         function displayYouTubeResults(videos, container) {
-            container.innerHTML = videos.map(video => {
+            let html = '';
+            videos.forEach(video => {
                 const title = video.title || 'Unknown Video';
                 const videoId = video.videoId || '';
                 const thumbnail = video.thumbnail || '';
                 
-                return `
+                html += `
                 <div class="content-card">
                     <img src="${thumbnail}" alt="${title}" class="card-image">
                     <div class="card-content">
@@ -1143,24 +1146,26 @@ app.get('/', (req, res) => {
                             <button class="action-btn watch-btn" onclick="playYouTubeVideo('${videoId}')">
                                 <i class="fas fa-play"></i> Watch
                             </button>
-                            <button class="action-btn download-btn" onclick="downloadYouTubeVideo('${videoId}', '${title.replace(/'/g, "\\'")}')">
+                            <button class="action-btn download-btn" onclick="downloadYouTubeVideo('${videoId}', '${title.replace(/'/g, "\\\\'")}')">
                                 <i class="fas fa-download"></i> Download
                             </button>
                         </div>
                     </div>
                 </div>
                 `;
-            }).join('');
+            });
+            container.innerHTML = html;
         }
 
         function displayMusicResults(tracks, container) {
-            container.innerHTML = tracks.map(track => {
+            let html = '';
+            tracks.forEach(track => {
                 const title = track.title || 'Unknown Track';
                 const artist = track.artist || 'Unknown Artist';
                 const thumbnail = track.thumbnail || '';
                 const trackId = track.id || '';
                 
-                return `
+                html += `
                 <div class="content-card">
                     <img src="${thumbnail}" alt="${title}" class="card-image">
                     <div class="card-content">
@@ -1170,25 +1175,27 @@ app.get('/', (req, res) => {
                             <button class="action-btn music-btn" onclick="playMusic('${trackId}')">
                                 <i class="fas fa-play"></i> Play
                             </button>
-                            <button class="action-btn download-btn" onclick="downloadMusic('${trackId}', '${title.replace(/'/g, "\\'")}')">
+                            <button class="action-btn download-btn" onclick="downloadMusic('${trackId}', '${title.replace(/'/g, "\\\\'")}')">
                                 <i class="fas fa-download"></i> Download
                             </button>
                         </div>
                     </div>
                 </div>
                 `;
-            }).join('');
+            });
+            container.innerHTML = html;
         }
 
         function displayTorrentResults(torrents, container) {
-            container.innerHTML = torrents.map(torrent => {
+            let html = '';
+            torrents.forEach(torrent => {
                 const title = torrent.title || 'Unknown Torrent';
                 const size = torrent.size || 'Unknown size';
                 const seeds = torrent.seeds || '0';
                 const magnet = torrent.magnet || '';
                 const url = torrent.url || '';
                 
-                return `
+                html += `
                 <div class="content-card">
                     <div class="card-content">
                         <h3 class="card-title">${title}</h3>
@@ -1204,7 +1211,8 @@ app.get('/', (req, res) => {
                     </div>
                 </div>
                 `;
-            }).join('');
+            });
+            container.innerHTML = html;
         }
 
         function displayYouTubeDownloadOptions(data) {
@@ -1237,13 +1245,14 @@ app.get('/', (req, res) => {
                 return;
             }
 
-            container.innerHTML = userDownloads.map(download => {
+            let html = '';
+            userDownloads.forEach(download => {
                 const title = download.title || 'Unknown File';
                 const type = download.type || 'Unknown';
                 const url = download.url || '';
                 const date = new Date(download.timestamp).toLocaleDateString();
                 
-                return `
+                html += `
                 <div class="content-card">
                     <div class="card-content">
                         <h3 class="card-title">${title}</h3>
@@ -1256,7 +1265,8 @@ app.get('/', (req, res) => {
                     </div>
                 </div>
                 `;
-            }).join('');
+            });
+            container.innerHTML = html;
         }
 
         // Utility Functions
