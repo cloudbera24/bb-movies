@@ -6,6 +6,7 @@ const cors = require('cors');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const compression = require('compression');
+const path = require('path');
 
 const app = express();
 const PORT = process.env.PORT || 8080;
@@ -27,8 +28,108 @@ app.use(cors());
 app.use(compression());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(express.static('public'));
 
-// Serve main HTML with enhanced Beraflix design
+// PWA Manifest
+app.get('/manifest.json', (req, res) => {
+  res.json({
+    "name": "Beraflix - Stream & Download Movies",
+    "short_name": "Beraflix",
+    "description": "Stream and download HD movies, TV shows from Hollywood, Nollywood, Anime and more",
+    "start_url": "/",
+    "display": "standalone",
+    "background_color": "#0a0a0a",
+    "theme_color": "#e50914",
+    "orientation": "portrait-primary",
+    "icons": [
+      {
+        "src": "/icon-192.png",
+        "sizes": "192x192",
+        "type": "image/png",
+        "purpose": "any maskable"
+      },
+      {
+        "src": "/icon-512.png",
+        "sizes": "512x512",
+        "type": "image/png",
+        "purpose": "any maskable"
+      },
+      {
+        "src": "/icon-1024.png",
+        "sizes": "1024x1024",
+        "type": "image/png",
+        "purpose": "any maskable"
+      }
+    ],
+    "categories": ["entertainment", "movies", "video"],
+    "lang": "en",
+    "scope": "/",
+    "screenshots": [
+      {
+        "src": "/screenshot-wide.png",
+        "sizes": "1280x720",
+        "type": "image/png",
+        "form_factor": "wide"
+      },
+      {
+        "src": "/screenshot-narrow.png",
+        "sizes": "375x667",
+        "type": "image/png",
+        "form_factor": "narrow"
+      }
+    ]
+  });
+});
+
+// Service Worker
+app.get('/sw.js', (req, res) => {
+  res.setHeader('Content-Type', 'application/javascript');
+  res.send(`
+    const CACHE_NAME = 'beraflix-v2';
+    const urlsToCache = [
+      '/',
+      '/manifest.json'
+    ];
+
+    self.addEventListener('install', (event) => {
+      event.waitUntil(
+        caches.open(CACHE_NAME)
+          .then((cache) => {
+            return cache.addAll(urlsToCache);
+          })
+      );
+    });
+
+    self.addEventListener('fetch', (event) => {
+      event.respondWith(
+        caches.match(event.request)
+          .then((response) => {
+            if (response) {
+              return response;
+            }
+            return fetch(event.request);
+          }
+        )
+      );
+    });
+
+    self.addEventListener('activate', (event) => {
+      event.waitUntil(
+        caches.keys().then((cacheNames) => {
+          return Promise.all(
+            cacheNames.map((cacheName) => {
+              if (cacheName !== CACHE_NAME) {
+                return caches.delete(cacheName);
+              }
+            })
+          );
+        })
+      );
+    });
+  `);
+});
+
+// Serve main HTML with enhanced Beraflix design and PWA features
 app.get('/', (req, res) => {
   res.send(`
 <!DOCTYPE html>
@@ -37,6 +138,11 @@ app.get('/', (req, res) => {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Beraflix - Stream & Download HD Movies</title>
+    <meta name="description" content="Stream and download HD movies, TV shows from Hollywood, Nollywood, Anime, Romance and more. Watch anywhere, download offline.">
+    <meta name="theme-color" content="#e50914">
+    <link rel="manifest" href="/manifest.json">
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <link rel="apple-touch-icon" href="/icon-192.png">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -69,6 +175,31 @@ app.get('/', (req, res) => {
             font-family: 'Montserrat', 'Roboto', sans-serif;
             overflow-x: hidden;
             line-height: 1.6;
+        }
+
+        /* Install Prompt */
+        .install-prompt {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: var(--bera-dark);
+            border: 2px solid var(--bera-red);
+            border-radius: 10px;
+            padding: 1rem;
+            z-index: 10000;
+            display: none;
+            max-width: 300px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+
+        .install-prompt button {
+            background: var(--bera-red);
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 0.5rem 0.25rem;
         }
 
         /* Premium Badge */
@@ -285,6 +416,26 @@ app.get('/', (req, res) => {
 
         .downloads-btn:hover {
             background: var(--bera-gold);
+            color: #000;
+            transform: translateY(-2px);
+        }
+
+        .install-app-btn {
+            background: transparent;
+            border: 2px solid var(--bera-blue);
+            color: var(--bera-blue);
+            padding: 0.6rem 1.2rem;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .install-app-btn:hover {
+            background: var(--bera-blue);
             color: #000;
             transform: translateY(-2px);
         }
@@ -915,6 +1066,7 @@ app.get('/', (req, res) => {
             .hero-description { font-size: 1.2rem; }
             .movie-card { width: 250px; }
             .splash-logo { font-size: 5rem; }
+            .install-prompt { bottom: 10px; right: 10px; left: 10px; max-width: none; }
         }
 
         @media (max-width: 480px) {
@@ -974,6 +1126,13 @@ app.get('/', (req, res) => {
     </style>
 </head>
 <body>
+    <!-- Install Prompt -->
+    <div id="installPrompt" class="install-prompt">
+        <p>Install Beraflix for better experience</p>
+        <button id="installBtn">Install App</button>
+        <button id="cancelInstall">Not Now</button>
+    </div>
+
     <!-- Splash Screen -->
     <div id="splashScreen" class="splash-screen">
         <div class="splash-logo">BERAFLIX</div>
@@ -1002,6 +1161,9 @@ app.get('/', (req, res) => {
                     </button>
                 </div>
                 <div class="user-section">
+                    <button class="install-app-btn" id="installAppBtn">
+                        <i class="fas fa-download"></i> Install App
+                    </button>
                     <button class="downloads-btn" id="downloadsBtn">
                         <i class="fas fa-download"></i> My Downloads
                     </button>
@@ -1207,23 +1369,23 @@ app.get('/', (req, res) => {
                 </div>
             </section>
 
-            <!-- Science Fiction -->
-            <section class="row" id="scifiRow">
+            <!-- Romance -->
+            <section class="row" id="romanceRow">
                 <div class="row-header">
-                    <h2 class="row-title">🚀 Science Fiction</h2>
-                    <span class="premium-badge">4K</span>
+                    <h2 class="row-title">❤️ Romance & Love</h2>
+                    <span class="premium-badge">HD</span>
                 </div>
                 <div class="row-content">
-                    <button class="scroll-btn scroll-left" onclick="scrollRow('scifiContainer', -400)">
+                    <button class="scroll-btn scroll-left" onclick="scrollRow('romanceContainer', -400)">
                         <i class="fas fa-chevron-left"></i>
                     </button>
-                    <div class="movies-container" id="scifiContainer">
+                    <div class="movies-container" id="romanceContainer">
                         <div class="loading">
                             <div class="loading-spinner"></div>
-                            Loading sci-fi movies...
+                            Loading romance movies...
                         </div>
                     </div>
-                    <button class="scroll-btn scroll-right" onclick="scrollRow('scifiContainer', 400)">
+                    <button class="scroll-btn scroll-right" onclick="scrollRow('romanceContainer', 400)">
                         <i class="fas fa-chevron-right"></i>
                     </button>
                 </div>
@@ -1268,6 +1430,50 @@ app.get('/', (req, res) => {
                         </div>
                     </div>
                     <button class="scroll-btn scroll-right" onclick="scrollRow('comedyContainer', 400)">
+                        <i class="fas fa-chevron-right"></i>
+                    </button>
+                </div>
+            </section>
+
+            <!-- Thriller -->
+            <section class="row" id="thrillerRow">
+                <div class="row-header">
+                    <h2 class="row-title">🔪 Thriller & Suspense</h2>
+                    <span class="premium-badge">HD</span>
+                </div>
+                <div class="row-content">
+                    <button class="scroll-btn scroll-left" onclick="scrollRow('thrillerContainer', -400)">
+                        <i class="fas fa-chevron-left"></i>
+                    </button>
+                    <div class="movies-container" id="thrillerContainer">
+                        <div class="loading">
+                            <div class="loading-spinner"></div>
+                            Loading thrillers...
+                        </div>
+                    </div>
+                    <button class="scroll-btn scroll-right" onclick="scrollRow('thrillerContainer', 400)">
+                        <i class="fas fa-chevron-right"></i>
+                    </button>
+                </div>
+            </section>
+
+            <!-- Horror -->
+            <section class="row" id="horrorRow">
+                <div class="row-header">
+                    <h2 class="row-title">👻 Horror Movies</h2>
+                    <span class="premium-badge">HD</span>
+                </div>
+                <div class="row-content">
+                    <button class="scroll-btn scroll-left" onclick="scrollRow('horrorContainer', -400)">
+                        <i class="fas fa-chevron-left"></i>
+                    </button>
+                    <div class="movies-container" id="horrorContainer">
+                        <div class="loading">
+                            <div class="loading-spinner"></div>
+                            Loading horror movies...
+                        </div>
+                    </div>
+                    <button class="scroll-btn scroll-right" onclick="scrollRow('horrorContainer', 400)">
                         <i class="fas fa-chevron-right"></i>
                     </button>
                 </div>
@@ -1335,12 +1541,15 @@ app.get('/', (req, res) => {
         let nollywoodMovies = [];
         let animeMovies = [];
         let disneyMovies = [];
-        let scifiMovies = [];
+        let romanceMovies = [];
         let dramaMovies = [];
         let comedyMovies = [];
+        let thrillerMovies = [];
+        let horrorMovies = [];
         let currentHeroMovie = null;
         let currentMovieSources = [];
         let userDownloads = JSON.parse(localStorage.getItem('beraflix_downloads')) || [];
+        let deferredPrompt = null;
 
         // DOM Elements
         const splashScreen = document.getElementById('splashScreen');
@@ -1348,6 +1557,7 @@ app.get('/', (req, res) => {
         const navbar = document.getElementById('navbar');
         const searchInput = document.getElementById('searchInput');
         const searchBtn = document.getElementById('searchBtn');
+        const installAppBtn = document.getElementById('installAppBtn');
         const downloadsBtn = document.getElementById('downloadsBtn');
         const downloadsSection = document.getElementById('downloadsSection');
         const downloadsGrid = document.getElementById('downloadsGrid');
@@ -1368,9 +1578,11 @@ app.get('/', (req, res) => {
         const nollywoodContainer = document.getElementById('nollywoodContainer');
         const animeContainer = document.getElementById('animeContainer');
         const disneyContainer = document.getElementById('disneyContainer');
-        const scifiContainer = document.getElementById('scifiContainer');
+        const romanceContainer = document.getElementById('romanceContainer');
         const dramaContainer = document.getElementById('dramaContainer');
         const comedyContainer = document.getElementById('comedyContainer');
+        const thrillerContainer = document.getElementById('thrillerContainer');
+        const horrorContainer = document.getElementById('horrorContainer');
         const searchResultsRow = document.getElementById('searchResultsRow');
         const searchResultsContainer = document.getElementById('searchResultsContainer');
         const videoPlayer = document.getElementById('videoPlayer');
@@ -1383,6 +1595,9 @@ app.get('/', (req, res) => {
         const downloadMovieTitle = document.getElementById('downloadMovieTitle');
         const downloadQualityOptions = document.getElementById('downloadQualityOptions');
         const closeDownloadModal = document.getElementById('closeDownloadModal');
+        const installPrompt = document.getElementById('installPrompt');
+        const installBtn = document.getElementById('installBtn');
+        const cancelInstall = document.getElementById('cancelInstall');
 
         // Initialize App
         document.addEventListener('DOMContentLoaded', async () => {
@@ -1391,12 +1606,26 @@ app.get('/', (req, res) => {
                 app.classList.remove('hidden');
                 initializeApp();
             }, 3000);
+
+            // PWA Install Prompt
+            window.addEventListener('beforeinstallprompt', (e) => {
+                e.preventDefault();
+                deferredPrompt = e;
+                installAppBtn.style.display = 'flex';
+            });
+
+            // Track app installation
+            window.addEventListener('appinstalled', () => {
+                installAppBtn.style.display = 'none';
+                deferredPrompt = null;
+            });
         });
 
         function initializeApp() {
             setupEventListeners();
             loadAllContent();
             updateDownloadsDisplay();
+            registerServiceWorker();
         }
 
         function setupEventListeners() {
@@ -1404,6 +1633,10 @@ app.get('/', (req, res) => {
             searchInput.addEventListener('keypress', (e) => {
                 if (e.key === 'Enter') handleSearch();
             });
+
+            installAppBtn.addEventListener('click', showInstallPrompt);
+            installBtn.addEventListener('click', installApp);
+            cancelInstall.addEventListener('click', hideInstallPrompt);
 
             downloadsBtn.addEventListener('click', toggleDownloadsSection);
 
@@ -1452,6 +1685,43 @@ app.get('/', (req, res) => {
             closeDownloadModal.addEventListener('click', () => {
                 downloadModal.style.display = 'none';
             });
+        }
+
+        // PWA Functions
+        function showInstallPrompt() {
+            if (deferredPrompt) {
+                installPrompt.style.display = 'block';
+            } else {
+                alert('Your browser doesn\\'t support app installation or the app is already installed.');
+            }
+        }
+
+        function hideInstallPrompt() {
+            installPrompt.style.display = 'none';
+        }
+
+        async function installApp() {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                const { outcome } = await deferredPrompt.userChoice;
+                
+                if (outcome === 'accepted') {
+                    installPrompt.style.display = 'none';
+                    installAppBtn.style.display = 'none';
+                }
+                deferredPrompt = null;
+            }
+        }
+
+        async function registerServiceWorker() {
+            if ('serviceWorker' in navigator) {
+                try {
+                    const registration = await navigator.serviceWorker.register('/sw.js');
+                    console.log('SW registered: ', registration);
+                } catch (registrationError) {
+                    console.log('SW registration failed: ', registrationError);
+                }
+            }
         }
 
         // Toggle downloads section
@@ -1511,9 +1781,11 @@ app.get('/', (req, res) => {
             await loadNollywoodMovies();
             await loadAnimeMovies();
             await loadDisneyMovies();
-            await loadScifiMovies();
+            await loadRomanceMovies();
             await loadDramaMovies();
             await loadComedyMovies();
+            await loadThrillerMovies();
+            await loadHorrorMovies();
         }
 
         // Load trending movies
@@ -1671,23 +1943,23 @@ app.get('/', (req, res) => {
             }
         }
 
-        // Load Science Fiction
-        async function loadScifiMovies() {
+        // Load Romance
+        async function loadRomanceMovies() {
             try {
-                scifiContainer.innerHTML = '<div class="loading"><div class="loading-spinner"></div>Loading sci-fi movies...</div>';
+                romanceContainer.innerHTML = '<div class="loading"><div class="loading-spinner"></div>Loading romance movies...</div>';
                 
-                const response = await fetch('/api/search/scifi');
+                const response = await fetch('/api/search/romance');
                 const data = await response.json();
                 
                 if (data.success && data.results && data.results.items.length > 0) {
-                    scifiMovies = data.results.items.slice(0, 12);
-                    displayMovies(scifiMovies, scifiContainer);
+                    romanceMovies = data.results.items.slice(0, 12);
+                    displayMovies(romanceMovies, romanceContainer);
                 } else {
-                    scifiContainer.innerHTML = '<div class="error-message">No sci-fi movies found.</div>';
+                    romanceContainer.innerHTML = '<div class="error-message">No romance movies found.</div>';
                 }
             } catch (error) {
-                console.error('Error loading sci-fi movies:', error);
-                scifiContainer.innerHTML = '<div class="error-message">Error loading sci-fi movies.</div>';
+                console.error('Error loading romance movies:', error);
+                romanceContainer.innerHTML = '<div class="error-message">Error loading romance movies.</div>';
             }
         }
 
@@ -1728,6 +2000,46 @@ app.get('/', (req, res) => {
             } catch (error) {
                 console.error('Error loading comedy:', error);
                 comedyContainer.innerHTML = '<div class="error-message">Error loading comedy.</div>';
+            }
+        }
+
+        // Load Thriller
+        async function loadThrillerMovies() {
+            try {
+                thrillerContainer.innerHTML = '<div class="loading"><div class="loading-spinner"></div>Loading thrillers...</div>';
+                
+                const response = await fetch('/api/search/thriller');
+                const data = await response.json();
+                
+                if (data.success && data.results && data.results.items.length > 0) {
+                    thrillerMovies = data.results.items.slice(0, 12);
+                    displayMovies(thrillerMovies, thrillerContainer);
+                } else {
+                    thrillerContainer.innerHTML = '<div class="error-message">No thrillers found.</div>';
+                }
+            } catch (error) {
+                console.error('Error loading thrillers:', error);
+                thrillerContainer.innerHTML = '<div class="error-message">Error loading thrillers.</div>';
+            }
+        }
+
+        // Load Horror
+        async function loadHorrorMovies() {
+            try {
+                horrorContainer.innerHTML = '<div class="loading"><div class="loading-spinner"></div>Loading horror movies...</div>';
+                
+                const response = await fetch('/api/search/horror');
+                const data = await response.json();
+                
+                if (data.success && data.results && data.results.items.length > 0) {
+                    horrorMovies = data.results.items.slice(0, 12);
+                    displayMovies(horrorMovies, horrorContainer);
+                } else {
+                    horrorContainer.innerHTML = '<div class="error-message">No horror movies found.</div>';
+                }
+            } catch (error) {
+                console.error('Error loading horror movies:', error);
+                horrorContainer.innerHTML = '<div class="error-message">Error loading horror movies.</div>';
             }
         }
 
@@ -1895,7 +2207,7 @@ app.get('/', (req, res) => {
 
         // Redownload movie
         function redownloadMovie(movieId) {
-            const allMovies = [...trendingMovies, ...popularMovies, ...actionMovies, ...hollywoodMovies, ...nollywoodMovies, ...animeMovies, ...disneyMovies, ...scifiMovies, ...dramaMovies, ...comedyMovies, ...currentMovies];
+            const allMovies = [...trendingMovies, ...popularMovies, ...actionMovies, ...hollywoodMovies, ...nollywoodMovies, ...animeMovies, ...disneyMovies, ...romanceMovies, ...dramaMovies, ...comedyMovies, ...thrillerMovies, ...horrorMovies, ...currentMovies];
             const movie = allMovies.find(m => m.subjectId === movieId);
             if (movie) {
                 showDownloadModal(movie);
@@ -1904,7 +2216,7 @@ app.get('/', (req, res) => {
 
         // Show download options for current playing movie
         function showDownloadOptionsForCurrent() {
-            const allMovies = [...trendingMovies, ...popularMovies, ...actionMovies, ...hollywoodMovies, ...nollywoodMovies, ...animeMovies, ...disneyMovies, ...scifiMovies, ...dramaMovies, ...comedyMovies, ...currentMovies];
+            const allMovies = [...trendingMovies, ...popularMovies, ...actionMovies, ...hollywoodMovies, ...nollywoodMovies, ...animeMovies, ...disneyMovies, ...romanceMovies, ...dramaMovies, ...comedyMovies, ...thrillerMovies, ...horrorMovies, ...currentMovies];
             const currentMovieId = videoElement.src.includes('/api/') ? videoElement.src.split('/').pop() : null;
             const movie = allMovies.find(m => m.subjectId === currentMovieId);
             if (movie) {
@@ -1927,7 +2239,7 @@ app.get('/', (req, res) => {
                     
                     const videoSource = selectedSource.download_url;
                     
-                    const allMovies = [...trendingMovies, ...popularMovies, ...actionMovies, ...hollywoodMovies, ...nollywoodMovies, ...animeMovies, ...disneyMovies, ...scifiMovies, ...dramaMovies, ...comedyMovies, ...currentMovies];
+                    const allMovies = [...trendingMovies, ...popularMovies, ...actionMovies, ...hollywoodMovies, ...nollywoodMovies, ...animeMovies, ...disneyMovies, ...romanceMovies, ...dramaMovies, ...comedyMovies, ...thrillerMovies, ...horrorMovies, ...currentMovies];
                     const movie = allMovies.find(m => m.subjectId === movieId);
                     
                     videoElement.src = videoSource;
@@ -2015,6 +2327,8 @@ app.get('/', (req, res) => {
         window.scrollRow = scrollRow;
         window.loadTrendingMovies = loadTrendingMovies;
         window.toggleDownloadsSection = toggleDownloadsSection;
+        window.showInstallPrompt = showInstallPrompt;
+        window.installApp = installApp;
     </script>
 </body>
 </html>
@@ -2122,7 +2436,7 @@ app.get('/health', (req, res) => {
     timestamp: new Date().toISOString(),
     service: 'Beraflix - Premium Streaming Platform',
     movie_api: MOVIE_API_BASE,
-    features: ['HD Streaming', 'Offline Downloads', '4K Content', 'Premium Experience', 'Multiple Categories']
+    features: ['HD Streaming', 'Offline Downloads', '4K Content', 'Premium Experience', 'Multiple Categories', 'PWA Support']
   });
 });
 
@@ -2133,7 +2447,8 @@ app.listen(PORT, () => {
   console.log(`🎯 Movie API: ${MOVIE_API_BASE}`);
   console.log(`✨ Brand: BERAFLIX - The Ultimate Streaming Experience`);
   console.log(`💫 Features: HD Streaming • Offline Downloads • 4K Content`);
-  console.log(`🎭 Categories: Hollywood • Nollywood • Anime • Disney • Sci-Fi • Drama • Comedy`);
+  console.log(`📱 PWA: Installable App • Offline Support`);
+  console.log(`🎭 Categories: Hollywood • Nollywood • Anime • Disney • Romance • Drama • Comedy • Thriller • Horror`);
 });
 
 module.exports = app;
