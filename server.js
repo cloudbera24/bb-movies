@@ -918,7 +918,10 @@ app.get('/', (req, res) => {
             
             // Update nav tabs
             navTabs.forEach(tab => tab.classList.remove('active'));
-            document.querySelector(`.nav-tab[data-tab="${tabName}"]`).classList.add('active');
+            const activeTab = document.querySelector('.nav-tab[data-tab="' + tabName + '"]');
+            if (activeTab) {
+                activeTab.classList.add('active');
+            }
             
             // Load content for the tab if needed
             loadTabContent(tabName);
@@ -980,7 +983,7 @@ app.get('/', (req, res) => {
             resultsContainer.innerHTML = '<div class="loading"><div class="loading-spinner"></div>Searching movies...</div>';
 
             try {
-                const response = await fetch(`/api/search/movies?query=${encodeURIComponent(query)}`);
+                const response = await fetch('/api/search/movies?query=' + encodeURIComponent(query));
                 const data = await response.json();
                 
                 if (data.success && data.results.length > 0) {
@@ -1002,7 +1005,7 @@ app.get('/', (req, res) => {
             resultsContainer.innerHTML = '<div class="loading"><div class="loading-spinner"></div>Searching YouTube...</div>';
 
             try {
-                const response = await fetch(`/api/search/youtube?query=${encodeURIComponent(query)}`);
+                const response = await fetch('/api/search/youtube?query=' + encodeURIComponent(query));
                 const data = await response.json();
                 
                 if (data.success && data.results.length > 0) {
@@ -1024,7 +1027,7 @@ app.get('/', (req, res) => {
             optionsContainer.innerHTML = '<div class="loading"><div class="loading-spinner"></div>Getting download options...</div>';
 
             try {
-                const response = await fetch(`/api/download/youtube?url=${encodeURIComponent(url)}`);
+                const response = await fetch('/api/download/youtube?url=' + encodeURIComponent(url));
                 const data = await response.json();
                 
                 if (data.success) {
@@ -1046,7 +1049,7 @@ app.get('/', (req, res) => {
             resultsContainer.innerHTML = '<div class="loading"><div class="loading-spinner"></div>Searching music...</div>';
 
             try {
-                const response = await fetch(`/api/search/music?query=${encodeURIComponent(query)}`);
+                const response = await fetch('/api/search/music?query=' + encodeURIComponent(query));
                 const data = await response.json();
                 
                 if (data.success && data.results.length > 0) {
@@ -1068,7 +1071,7 @@ app.get('/', (req, res) => {
             resultsContainer.innerHTML = '<div class="loading"><div class="loading-spinner"></div>Searching torrents...</div>';
 
             try {
-                const response = await fetch(`/api/search/torrents?query=${encodeURIComponent(query)}`);
+                const response = await fetch('/api/search/torrents?query=' + encodeURIComponent(query));
                 const data = await response.json();
                 
                 if (data.success && data.results.length > 0) {
@@ -1099,94 +1102,126 @@ app.get('/', (req, res) => {
 
         // Display Functions
         function displayMovies(movies, container) {
-            container.innerHTML = movies.map(movie => `
+            container.innerHTML = movies.map(movie => {
+                const title = movie.title || 'Unknown Title';
+                const description = movie.description || 'No description available';
+                const cover = movie.cover?.url || '';
+                const subjectId = movie.subjectId || '';
+                
+                return `
                 <div class="content-card">
-                    <img src="${movie.cover?.url || ''}" alt="${movie.title}" class="card-image" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZTA5MTE0Ii8+PC9zdmc+'">
+                    <img src="${cover}" alt="${title}" class="card-image" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZTA5MTE0Ii8+PC9zdmc+'">
                     <div class="card-content">
-                        <h3 class="card-title">${movie.title || 'Unknown Title'}</h3>
-                        <p class="card-description">${movie.description || 'No description available'}</p>
+                        <h3 class="card-title">${title}</h3>
+                        <p class="card-description">${description}</p>
                         <div class="card-actions">
-                            <button class="action-btn watch-btn" onclick="playMovie('${movie.subjectId}')">
+                            <button class="action-btn watch-btn" onclick="playMovie('${subjectId}')">
                                 <i class="fas fa-play"></i> Watch
                             </button>
-                            <button class="action-btn download-btn" onclick="showDownloadModal('${movie.subjectId}', '${movie.title}')">
+                            <button class="action-btn download-btn" onclick="showDownloadModal('${subjectId}', '${title.replace(/'/g, "\\'")}')">
                                 <i class="fas fa-download"></i> Download
                             </button>
                         </div>
                     </div>
                 </div>
-            `).join('');
+                `;
+            }).join('');
         }
 
         function displayYouTubeResults(videos, container) {
-            container.innerHTML = videos.map(video => `
+            container.innerHTML = videos.map(video => {
+                const title = video.title || 'Unknown Video';
+                const videoId = video.videoId || '';
+                const thumbnail = video.thumbnail || '';
+                
+                return `
                 <div class="content-card">
-                    <img src="${video.thumbnail}" alt="${video.title}" class="card-image">
+                    <img src="${thumbnail}" alt="${title}" class="card-image">
                     <div class="card-content">
-                        <h3 class="card-title">${video.title}</h3>
+                        <h3 class="card-title">${title}</h3>
                         <div class="card-actions">
-                            <button class="action-btn watch-btn" onclick="playYouTubeVideo('${video.videoId}')">
+                            <button class="action-btn watch-btn" onclick="playYouTubeVideo('${videoId}')">
                                 <i class="fas fa-play"></i> Watch
                             </button>
-                            <button class="action-btn download-btn" onclick="downloadYouTubeVideo('${video.videoId}', '${video.title}')">
+                            <button class="action-btn download-btn" onclick="downloadYouTubeVideo('${videoId}', '${title.replace(/'/g, "\\'")}')">
                                 <i class="fas fa-download"></i> Download
                             </button>
                         </div>
                     </div>
                 </div>
-            `).join('');
+                `;
+            }).join('');
         }
 
         function displayMusicResults(tracks, container) {
-            container.innerHTML = tracks.map(track => `
+            container.innerHTML = tracks.map(track => {
+                const title = track.title || 'Unknown Track';
+                const artist = track.artist || 'Unknown Artist';
+                const thumbnail = track.thumbnail || '';
+                const trackId = track.id || '';
+                
+                return `
                 <div class="content-card">
-                    <img src="${track.thumbnail}" alt="${track.title}" class="card-image">
+                    <img src="${thumbnail}" alt="${title}" class="card-image">
                     <div class="card-content">
-                        <h3 class="card-title">${track.title}</h3>
-                        <p class="card-description">${track.artist || 'Unknown Artist'}</p>
+                        <h3 class="card-title">${title}</h3>
+                        <p class="card-description">${artist}</p>
                         <div class="card-actions">
-                            <button class="action-btn music-btn" onclick="playMusic('${track.id}')">
+                            <button class="action-btn music-btn" onclick="playMusic('${trackId}')">
                                 <i class="fas fa-play"></i> Play
                             </button>
-                            <button class="action-btn download-btn" onclick="downloadMusic('${track.id}', '${track.title}')">
+                            <button class="action-btn download-btn" onclick="downloadMusic('${trackId}', '${title.replace(/'/g, "\\'")}')">
                                 <i class="fas fa-download"></i> Download
                             </button>
                         </div>
                     </div>
                 </div>
-            `).join('');
+                `;
+            }).join('');
         }
 
         function displayTorrentResults(torrents, container) {
-            container.innerHTML = torrents.map(torrent => `
+            container.innerHTML = torrents.map(torrent => {
+                const title = torrent.title || 'Unknown Torrent';
+                const size = torrent.size || 'Unknown size';
+                const seeds = torrent.seeds || '0';
+                const magnet = torrent.magnet || '';
+                const url = torrent.url || '';
+                
+                return `
                 <div class="content-card">
                     <div class="card-content">
-                        <h3 class="card-title">${torrent.title}</h3>
-                        <p class="card-description">Size: ${torrent.size} | Seeds: ${torrent.seeds}</p>
+                        <h3 class="card-title">${title}</h3>
+                        <p class="card-description">Size: ${size} | Seeds: ${seeds}</p>
                         <div class="card-actions">
-                            <button class="action-btn torrent-btn" onclick="downloadTorrent('${torrent.magnet}')">
+                            <button class="action-btn torrent-btn" onclick="downloadTorrent('${magnet}')">
                                 <i class="fas fa-magnet"></i> Magnet
                             </button>
-                            <button class="action-btn download-btn" onclick="downloadTorrentFile('${torrent.url}')">
+                            <button class="action-btn download-btn" onclick="downloadTorrentFile('${url}')">
                                 <i class="fas fa-download"></i> Torrent
                             </button>
                         </div>
                     </div>
                 </div>
-            `).join('');
+                `;
+            }).join('');
         }
 
         function displayYouTubeDownloadOptions(data) {
             const container = document.getElementById('youtubeDownloadOptions');
+            const title = data.title || 'YouTube Video';
+            const mp3Url = data.mp3_url || '';
+            const mp4Url = data.mp4_url || '';
+            
             container.innerHTML = `
                 <div class="content-card">
                     <div class="card-content">
-                        <h3 class="card-title">${data.title}</h3>
+                        <h3 class="card-title">${title}</h3>
                         <div class="card-actions">
-                            <button class="action-btn download-btn" onclick="downloadFile('${data.mp3_url}', '${data.title}.mp3')">
+                            <button class="action-btn download-btn" onclick="downloadFile('${mp3Url}', '${title}.mp3')">
                                 <i class="fas fa-music"></i> Download MP3
                             </button>
-                            <button class="action-btn download-btn" onclick="downloadFile('${data.mp4_url}', '${data.title}.mp4')">
+                            <button class="action-btn download-btn" onclick="downloadFile('${mp4Url}', '${title}.mp4')">
                                 <i class="fas fa-video"></i> Download MP4
                             </button>
                         </div>
@@ -1202,19 +1237,26 @@ app.get('/', (req, res) => {
                 return;
             }
 
-            container.innerHTML = userDownloads.map(download => `
+            container.innerHTML = userDownloads.map(download => {
+                const title = download.title || 'Unknown File';
+                const type = download.type || 'Unknown';
+                const url = download.url || '';
+                const date = new Date(download.timestamp).toLocaleDateString();
+                
+                return `
                 <div class="content-card">
                     <div class="card-content">
-                        <h3 class="card-title">${download.title}</h3>
-                        <p class="card-description">Type: ${download.type} | Date: ${new Date(download.timestamp).toLocaleDateString()}</p>
+                        <h3 class="card-title">${title}</h3>
+                        <p class="card-description">Type: ${type} | Date: ${date}</p>
                         <div class="card-actions">
-                            <button class="action-btn watch-btn" onclick="openDownload('${download.url}')">
+                            <button class="action-btn watch-btn" onclick="openDownload('${url}')">
                                 <i class="fas fa-play"></i> Open
                             </button>
                         </div>
                     </div>
                 </div>
-            `).join('');
+                `;
+            }).join('');
         }
 
         // Utility Functions
@@ -1262,7 +1304,7 @@ app.get('/', (req, res) => {
             const titleEl = document.getElementById('downloadModalTitle');
             const optionsEl = document.getElementById('downloadQualityOptions');
             
-            titleEl.textContent = `Download "${title}"`;
+            titleEl.textContent = 'Download "' + title + '"';
             optionsEl.innerHTML = `
                 <div class="quality-option" onclick="downloadMovieQuality('${movieId}', '480p')">
                     <span>480p - Good Quality</span>
@@ -1282,21 +1324,21 @@ app.get('/', (req, res) => {
         };
 
         window.downloadMovieQuality = async function(movieId, quality) {
-            alert(`Downloading movie ${movieId} in ${quality}`);
+            alert('Downloading movie ' + movieId + ' in ' + quality);
             document.getElementById('downloadModal').style.display = 'none';
         };
 
         window.playYouTubeVideo = function(videoId) {
-            window.open(`https://www.youtube.com/watch?v=${videoId}`, '_blank');
+            window.open('https://www.youtube.com/watch?v=' + videoId, '_blank');
         };
 
         window.downloadYouTubeVideo = async function(videoId, title) {
-            const url = `https://www.youtube.com/watch?v=${videoId}`;
-            const response = await fetch(`/api/download/youtube?url=${encodeURIComponent(url)}`);
+            const url = 'https://www.youtube.com/watch?v=' + videoId;
+            const response = await fetch('/api/download/youtube?url=' + encodeURIComponent(url));
             const data = await response.json();
             
             if (data.success) {
-                downloadFile(data.mp4_url, `${title}.mp4`);
+                downloadFile(data.mp4_url, title + '.mp4');
             }
         };
 
@@ -1306,7 +1348,7 @@ app.get('/', (req, res) => {
 
         window.downloadMusic = async function(trackId, title) {
             // Implement music download
-            alert(`Downloading music: ${title}`);
+            alert('Downloading music: ' + title);
         };
 
         window.downloadTorrent = function(magnetUrl) {
@@ -1333,10 +1375,10 @@ app.get('/', (req, res) => {
 app.get('/api/search/movies', async (req, res) => {
   try {
     const query = req.query.query;
-    const response = await fetch(`${MOVIE_API_BASE}/search/${encodeURIComponent(query)}`);
+    const response = await fetch(MOVIE_API_BASE + '/search/' + encodeURIComponent(query));
     const data = await response.json();
     
-    if (data.status === 200 && data.results?.items?.length > 0) {
+    if (data.status === 200 && data.results && data.results.items && data.results.items.length > 0) {
       res.json({ 
         success: true, 
         results: data.results.items.slice(0, 20) 
@@ -1359,10 +1401,10 @@ app.get('/api/search/movies', async (req, res) => {
 // Trending Movies
 app.get('/api/trending/movies', async (req, res) => {
   try {
-    const response = await fetch(`${MOVIE_API_BASE}/search/avengers`);
+    const response = await fetch(MOVIE_API_BASE + '/search/avengers');
     const data = await response.json();
     
-    if (data.status === 200 && data.results?.items?.length > 0) {
+    if (data.status === 200 && data.results && data.results.items && data.results.items.length > 0) {
       res.json({ 
         success: true, 
         results: data.results.items.slice(0, 12) 
@@ -1386,10 +1428,10 @@ app.get('/api/trending/movies', async (req, res) => {
 app.get('/api/search/youtube', async (req, res) => {
   try {
     const query = req.query.query;
-    const response = await fetch(`${GIFTED_API_BASE}/youtube-search?apikey=${API_KEY}&q=${encodeURIComponent(query)}`);
+    const response = await fetch(GIFTED_API_BASE + '/youtube-search?apikey=' + API_KEY + '&q=' + encodeURIComponent(query));
     const data = await response.json();
     
-    if (data.results?.length > 0) {
+    if (data.results && data.results.length > 0) {
       res.json({ 
         success: true, 
         results: data.results.slice(0, 20) 
@@ -1415,11 +1457,11 @@ app.get('/api/download/youtube', async (req, res) => {
     const url = req.query.url;
     
     // Get MP3
-    const mp3Response = await fetch(`${GIFTED_API_BASE}/download/ytmp3?apikey=${API_KEY}&url=${encodeURIComponent(url)}`);
+    const mp3Response = await fetch(GIFTED_API_BASE + '/download/ytmp3?apikey=' + API_KEY + '&url=' + encodeURIComponent(url));
     const mp3Data = await mp3Response.json();
     
     // Get MP4
-    const mp4Response = await fetch(`${GIFTED_API_BASE}/download/ytmp4?apikey=${API_KEY}&url=${encodeURIComponent(url)}`);
+    const mp4Response = await fetch(GIFTED_API_BASE + '/download/ytmp4?apikey=' + API_KEY + '&url=' + encodeURIComponent(url));
     const mp4Data = await mp4Response.json();
     
     if (mp3Data.status && mp4Data.status) {
@@ -1448,10 +1490,10 @@ app.get('/api/download/youtube', async (req, res) => {
 app.get('/api/search/music', async (req, res) => {
   try {
     const query = req.query.query;
-    const response = await fetch(`${GIFTED_API_BASE}/search/spotifysearch?apikey=${API_KEY}&query=${encodeURIComponent(query)}`);
+    const response = await fetch(GIFTED_API_BASE + '/search/spotifysearch?apikey=' + API_KEY + '&query=' + encodeURIComponent(query));
     const data = await response.json();
     
-    if (data.results?.length > 0) {
+    if (data.results && data.results.length > 0) {
       res.json({ 
         success: true, 
         results: data.results.slice(0, 20) 
@@ -1475,10 +1517,10 @@ app.get('/api/search/music', async (req, res) => {
 app.get('/api/search/torrents', async (req, res) => {
   try {
     const query = req.query.query;
-    const response = await fetch(`${GIFTED_API_BASE}/search/yts?apikey=${API_KEY}&query=${encodeURIComponent(query)}`);
+    const response = await fetch(GIFTED_API_BASE + '/search/yts?apikey=' + API_KEY + '&query=' + encodeURIComponent(query));
     const data = await response.json();
     
-    if (data.results?.length > 0) {
+    if (data.results && data.results.length > 0) {
       res.json({ 
         success: true, 
         results: data.results.slice(0, 20) 
@@ -1502,7 +1544,7 @@ app.get('/api/search/torrents', async (req, res) => {
 app.get('/api/download/advanced-youtube', async (req, res) => {
   try {
     const url = req.query.url;
-    const response = await fetch(`${GIFTED_API_BASE}/download/ytdlv3?apikey=${API_KEY}&url=${encodeURIComponent(url)}`);
+    const response = await fetch(GIFTED_API_BASE + '/download/ytdlv3?apikey=' + API_KEY + '&url=' + encodeURIComponent(url));
     const data = await response.json();
     
     if (data.success) {
@@ -1548,11 +1590,11 @@ app.get('/health', (req, res) => {
 
 // Start Server
 app.listen(PORT, () => {
-  console.log(`🚀 Beraflix Ultimate Server running on port ${PORT}`);
-  console.log(`📍 Visit: http://localhost:${PORT}`);
-  console.log(`🎯 Features: Movies • YouTube • Music • Torrents`);
-  console.log(`📱 PWA: Installable App • Mobile Friendly`);
-  console.log(`🔧 APIs: Movie API • Gifted Tech API`);
+  console.log('🚀 Beraflix Ultimate Server running on port ' + PORT);
+  console.log('📍 Visit: http://localhost:' + PORT);
+  console.log('🎯 Features: Movies • YouTube • Music • Torrents');
+  console.log('📱 PWA: Installable App • Mobile Friendly');
+  console.log('🔧 APIs: Movie API • Gifted Tech API');
 });
 
 module.exports = app;
