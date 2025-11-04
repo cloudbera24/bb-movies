@@ -30,7 +30,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static('public'));
 
-// PWA Manifest
+// Enhanced PWA Manifest
 app.get('/manifest.json', (req, res) => {
   res.json({
     "name": "Beraflix - Stream & Download Movies",
@@ -40,7 +40,7 @@ app.get('/manifest.json', (req, res) => {
     "display": "standalone",
     "background_color": "#0a0a0a",
     "theme_color": "#e50914",
-    "orientation": "portrait-primary",
+    "orientation": "any",
     "icons": [
       {
         "src": "/icon-192.png",
@@ -53,42 +53,25 @@ app.get('/manifest.json', (req, res) => {
         "sizes": "512x512",
         "type": "image/png",
         "purpose": "any maskable"
-      },
-      {
-        "src": "/icon-1024.png",
-        "sizes": "1024x1024",
-        "type": "image/png",
-        "purpose": "any maskable"
       }
     ],
     "categories": ["entertainment", "movies", "video"],
     "lang": "en",
     "scope": "/",
-    "screenshots": [
-      {
-        "src": "/screenshot-wide.png",
-        "sizes": "1280x720",
-        "type": "image/png",
-        "form_factor": "wide"
-      },
-      {
-        "src": "/screenshot-narrow.png",
-        "sizes": "375x667",
-        "type": "image/png",
-        "form_factor": "narrow"
-      }
-    ]
+    "prefer_related_applications": false
   });
 });
 
-// Service Worker
+// Enhanced Service Worker
 app.get('/sw.js', (req, res) => {
   res.setHeader('Content-Type', 'application/javascript');
   res.send(`
-    const CACHE_NAME = 'beraflix-v2';
+    const CACHE_NAME = 'beraflix-v3';
     const urlsToCache = [
       '/',
-      '/manifest.json'
+      '/manifest.json',
+      '/api/search/popular',
+      '/api/search/trending'
     ];
 
     self.addEventListener('install', (event) => {
@@ -101,16 +84,45 @@ app.get('/sw.js', (req, res) => {
     });
 
     self.addEventListener('fetch', (event) => {
-      event.respondWith(
-        caches.match(event.request)
-          .then((response) => {
-            if (response) {
+      if (event.request.url.includes('/api/')) {
+        // Network first for API calls
+        event.respondWith(
+          fetch(event.request)
+            .then((response) => {
+              const responseClone = response.clone();
+              caches.open(CACHE_NAME)
+                .then((cache) => {
+                  cache.put(event.request, responseClone);
+                });
               return response;
-            }
-            return fetch(event.request);
-          }
-        )
-      );
+            })
+            .catch(() => {
+              return caches.match(event.request);
+            })
+        );
+      } else {
+        // Cache first for static assets
+        event.respondWith(
+          caches.match(event.request)
+            .then((response) => {
+              if (response) {
+                return response;
+              }
+              return fetch(event.request)
+                .then((response) => {
+                  if(!response || response.status !== 200 || response.type !== 'basic') {
+                    return response;
+                  }
+                  const responseToCache = response.clone();
+                  caches.open(CACHE_NAME)
+                    .then((cache) => {
+                      cache.put(event.request, responseToCache);
+                    });
+                  return response;
+                });
+            })
+        );
+      }
     });
 
     self.addEventListener('activate', (event) => {
@@ -126,10 +138,16 @@ app.get('/sw.js', (req, res) => {
         })
       );
     });
+
+    self.addEventListener('message', (event) => {
+      if (event.data && event.data.type === 'SKIP_WAITING') {
+        self.skipWaiting();
+      }
+    });
   `);
 });
 
-// Serve main HTML with enhanced Beraflix design and PWA features
+// Serve main HTML with enhanced mobile features
 app.get('/', (req, res) => {
   res.send(`
 <!DOCTYPE html>
@@ -177,32 +195,183 @@ app.get('/', (req, res) => {
             line-height: 1.6;
         }
 
-        /* Install Prompt */
+        /* Enhanced Install Prompt */
         .install-prompt {
             position: fixed;
             bottom: 20px;
             right: 20px;
             background: var(--bera-dark);
             border: 2px solid var(--bera-red);
-            border-radius: 10px;
-            padding: 1rem;
+            border-radius: 15px;
+            padding: 1.5rem;
             z-index: 10000;
             display: none;
-            max-width: 300px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            max-width: 350px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.7);
+            backdrop-filter: blur(10px);
+            animation: slideInUp 0.5s ease;
         }
 
-        .install-prompt button {
+        @keyframes slideInUp {
+            from {
+                transform: translateY(100px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .install-prompt-content {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .install-icon {
+            font-size: 2rem;
+            color: var(--bera-red);
+        }
+
+        .install-text h3 {
+            margin-bottom: 0.5rem;
+            color: var(--bera-white);
+        }
+
+        .install-text p {
+            color: var(--bera-light);
+            font-size: 0.9rem;
+        }
+
+        .install-buttons {
+            display: flex;
+            gap: 0.8rem;
+            justify-content: flex-end;
+        }
+
+        .install-btn {
             background: var(--bera-red);
             color: white;
             border: none;
-            padding: 0.5rem 1rem;
-            border-radius: 5px;
+            padding: 0.8rem 1.5rem;
+            border-radius: 8px;
             cursor: pointer;
-            margin: 0.5rem 0.25rem;
+            font-weight: 600;
+            transition: all 0.3s;
+            flex: 1;
         }
 
-        /* Premium Badge */
+        .install-btn:hover {
+            background: var(--bera-dark-red);
+            transform: translateY(-2px);
+        }
+
+        .cancel-install {
+            background: transparent;
+            border: 1px solid var(--bera-light);
+            color: var(--bera-light);
+        }
+
+        .cancel-install:hover {
+            background: var(--bera-gray);
+        }
+
+        /* Mobile Bottom Navigation */
+        .mobile-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: var(--bera-dark);
+            border-top: 1px solid var(--bera-gray);
+            display: none;
+            z-index: 1000;
+            padding: 0.5rem 0;
+        }
+
+        .mobile-nav-items {
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+        }
+
+        .mobile-nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-decoration: none;
+            color: var(--bera-light);
+            font-size: 0.8rem;
+            padding: 0.5rem;
+            transition: all 0.3s;
+            flex: 1;
+        }
+
+        .mobile-nav-item i {
+            font-size: 1.2rem;
+            margin-bottom: 0.3rem;
+        }
+
+        .mobile-nav-item.active {
+            color: var(--bera-red);
+        }
+
+        .mobile-nav-item:hover {
+            color: var(--bera-white);
+        }
+
+        /* Mobile Search Overlay */
+        .mobile-search-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--bera-black);
+            z-index: 2000;
+            display: none;
+            flex-direction: column;
+        }
+
+        .mobile-search-header {
+            display: flex;
+            align-items: center;
+            padding: 1rem;
+            background: var(--bera-dark);
+            border-bottom: 1px solid var(--bera-gray);
+        }
+
+        .mobile-search-input {
+            flex: 1;
+            background: transparent;
+            border: none;
+            color: var(--bera-white);
+            font-size: 1.2rem;
+            padding: 1rem;
+            outline: none;
+        }
+
+        .close-mobile-search {
+            background: none;
+            border: none;
+            color: var(--bera-white);
+            font-size: 1.5rem;
+            padding: 1rem;
+            cursor: pointer;
+        }
+
+        .mobile-search-result {
+            border-bottom: 1px solid var(--bera-gray);
+            transition: background 0.3s;
+        }
+
+        .mobile-search-result:active {
+            background: var(--bera-gray);
+        }
+
+        /* Enhanced Premium Badge */
         .premium-badge {
             background: var(--bera-premium);
             color: #000;
@@ -267,7 +436,7 @@ app.get('/', (req, res) => {
             display: none !important;
         }
 
-        /* Enhanced Beraflix Navigation */
+        /* Enhanced Mobile Navigation */
         .navbar {
             position: fixed;
             top: 0;
@@ -275,7 +444,7 @@ app.get('/', (req, res) => {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 1.5rem 4%;
+            padding: 1rem 4%;
             z-index: 1000;
             transition: all 0.4s ease;
             background: linear-gradient(180deg, rgba(10,10,10,0.95) 0%, transparent 100%);
@@ -290,13 +459,13 @@ app.get('/', (req, res) => {
 
         .nav-logo {
             font-family: 'Bebas Neue', cursive;
-            font-size: 2.8rem;
+            font-size: 2.2rem;
             font-weight: bold;
             color: transparent;
             background: var(--bera-gradient);
             -webkit-background-clip: text;
             background-clip: text;
-            letter-spacing: 3px;
+            letter-spacing: 2px;
             text-decoration: none;
             display: flex;
             align-items: center;
@@ -305,20 +474,20 @@ app.get('/', (req, res) => {
 
         .nav-logo::before {
             content: "🎬";
-            font-size: 2rem;
+            font-size: 1.5rem;
         }
 
         .nav-links {
             display: flex;
-            gap: 2.5rem;
+            gap: 2rem;
             list-style: none;
-            margin-left: 4rem;
+            margin-left: 2rem;
         }
 
         .nav-links a {
             color: var(--bera-white);
             text-decoration: none;
-            font-size: 1rem;
+            font-size: 0.9rem;
             font-weight: 600;
             transition: all 0.3s;
             position: relative;
@@ -326,30 +495,10 @@ app.get('/', (req, res) => {
             letter-spacing: 1px;
         }
 
-        .nav-links a:hover {
-            color: var(--bera-red);
-            transform: translateY(-2px);
-        }
-
-        .nav-links a.active {
-            color: var(--bera-red);
-        }
-
-        .nav-links a.active::after {
-            content: '';
-            position: absolute;
-            bottom: -8px;
-            left: 0;
-            width: 100%;
-            height: 3px;
-            background: var(--bera-gradient);
-            border-radius: 2px;
-        }
-
         .nav-search {
             display: flex;
             align-items: center;
-            gap: 2rem;
+            gap: 1rem;
         }
 
         .search-container {
@@ -364,102 +513,36 @@ app.get('/', (req, res) => {
             color: var(--bera-white);
             padding: 0.8rem 1.5rem;
             border-radius: 30px;
-            width: 320px;
+            width: 300px;
             font-size: 1rem;
             transition: all 0.3s ease;
             backdrop-filter: blur(10px);
         }
 
-        .search-input:focus {
-            border-color: var(--bera-red);
-            background: rgba(255,255,255,0.15);
-            box-shadow: 0 0 20px rgba(229, 9, 20, 0.3);
-        }
-
-        .search-btn {
-            background: var(--bera-gradient);
+        .mobile-search-btn {
+            display: none;
+            background: transparent;
             border: none;
             color: var(--bera-white);
+            font-size: 1.2rem;
+            padding: 0.5rem;
             cursor: pointer;
-            font-size: 1.1rem;
-            padding: 0.8rem 1.2rem;
-            border-radius: 30px;
-            margin-left: 0.8rem;
-            transition: all 0.3s;
-            font-weight: 600;
         }
 
-        .search-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: var(--bera-glow);
-        }
-
-        .user-section {
-            display: flex;
-            align-items: center;
-            gap: 1.5rem;
-        }
-
-        .downloads-btn {
-            background: transparent;
-            border: 2px solid var(--bera-gold);
-            color: var(--bera-gold);
-            padding: 0.6rem 1.2rem;
-            border-radius: 25px;
-            cursor: pointer;
-            font-weight: 600;
-            transition: all 0.3s;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .downloads-btn:hover {
-            background: var(--bera-gold);
+        /* Premium Badge */
+        .premium-badge {
+            background: var(--bera-premium);
             color: #000;
-            transform: translateY(-2px);
+            padding: 0.3rem 1rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            animation: glow 2s infinite;
         }
 
-        .install-app-btn {
-            background: transparent;
-            border: 2px solid var(--bera-blue);
-            color: var(--bera-blue);
-            padding: 0.6rem 1.2rem;
-            border-radius: 25px;
-            cursor: pointer;
-            font-weight: 600;
-            transition: all 0.3s;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .install-app-btn:hover {
-            background: var(--bera-blue);
-            color: #000;
-            transform: translateY(-2px);
-        }
-
-        .user-avatar {
-            width: 45px;
-            height: 45px;
-            border-radius: 50%;
-            background: var(--bera-gradient);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
-            cursor: pointer;
-            border: 2px solid var(--bera-red);
-            transition: all 0.3s;
-        }
-
-        .user-avatar:hover {
-            transform: scale(1.1);
-            box-shadow: var(--bera-glow);
-        }
-
-        /* Enhanced Hero Banner */
+        /* Hero Banner */
         .hero-banner {
             position: relative;
             height: 90vh;
@@ -623,7 +706,7 @@ app.get('/', (req, res) => {
             box-shadow: 0 8px 30px rgba(255, 215, 0, 0.6);
         }
 
-        /* Enhanced Content Rows */
+        /* Content Rows */
         .content-rows {
             padding: 0 4% 5rem;
         }
@@ -677,7 +760,7 @@ app.get('/', (req, res) => {
             display: none;
         }
 
-        /* Enhanced Movie Cards */
+        /* Movie Cards */
         .movie-card {
             flex: 0 0 auto;
             width: 350px;
@@ -826,7 +909,7 @@ app.get('/', (req, res) => {
 
         .download-item-header {
             display: flex;
-            justify-content: between;
+            justify-content: space-between;
             align-items: center;
             margin-bottom: 1rem;
         }
@@ -867,7 +950,7 @@ app.get('/', (req, res) => {
             gap: 1rem;
         }
 
-        /* Enhanced Video Player */
+        /* Video Player */
         .video-player {
             position: fixed;
             top: 0;
@@ -937,7 +1020,7 @@ app.get('/', (req, res) => {
             background: #000;
         }
 
-        /* Enhanced Loading States */
+        /* Loading States */
         .loading {
             display: flex;
             justify-content: center;
@@ -1045,37 +1128,6 @@ app.get('/', (req, res) => {
             transform: scale(1.05);
         }
 
-        /* Responsive Design */
-        @media (max-width: 1200px) {
-            .hero-content { max-width: 55%; }
-            .hero-title { font-size: 4rem; }
-        }
-
-        @media (max-width: 968px) {
-            .nav-links { display: none; }
-            .hero-content { max-width: 70%; }
-            .hero-title { font-size: 3.5rem; }
-            .movie-card { width: 300px; }
-        }
-
-        @media (max-width: 768px) {
-            .navbar { padding: 1rem; }
-            .search-input { width: 200px; }
-            .hero-content { max-width: 85%; }
-            .hero-title { font-size: 3rem; }
-            .hero-description { font-size: 1.2rem; }
-            .movie-card { width: 250px; }
-            .splash-logo { font-size: 5rem; }
-            .install-prompt { bottom: 10px; right: 10px; left: 10px; max-width: none; }
-        }
-
-        @media (max-width: 480px) {
-            .search-input { width: 150px; }
-            .hero-title { font-size: 2.5rem; }
-            .hero-buttons { flex-direction: column; }
-            .movie-card { width: 200px; }
-        }
-
         /* Scroll Buttons */
         .scroll-btn {
             position: absolute;
@@ -1123,14 +1175,333 @@ app.get('/', (req, res) => {
             background: var(--bera-dark-red);
             transform: translateY(-2px);
         }
+
+        /* Mobile Optimizations */
+        @media (max-width: 768px) {
+            .navbar {
+                padding: 1rem;
+            }
+
+            .nav-links {
+                display: none;
+            }
+
+            .search-input {
+                display: none;
+            }
+
+            .mobile-search-btn {
+                display: block;
+            }
+
+            .user-section .install-app-btn,
+            .user-section .downloads-btn {
+                display: none;
+            }
+
+            .mobile-nav {
+                display: block;
+            }
+
+            .nav-logo {
+                font-size: 1.8rem;
+            }
+
+            .hero-content {
+                max-width: 90%;
+                text-align: center;
+            }
+
+            .hero-title {
+                font-size: 2.5rem;
+            }
+
+            .hero-description {
+                font-size: 1.1rem;
+            }
+
+            .hero-meta {
+                flex-wrap: wrap;
+                justify-content: center;
+                gap: 1rem;
+            }
+
+            .hero-buttons {
+                flex-direction: column;
+                gap: 1rem;
+            }
+
+            .play-btn, .info-btn, .download-hero-btn {
+                padding: 1rem 1.5rem;
+                font-size: 1.1rem;
+            }
+
+            .movie-card {
+                width: 280px;
+            }
+
+            .install-prompt {
+                left: 10px;
+                right: 10px;
+                max-width: none;
+                bottom: 80px;
+            }
+
+            .content-rows {
+                padding-bottom: 80px;
+            }
+
+            .quick-actions {
+                display: none;
+            }
+
+            .scroll-btn {
+                padding: 1rem 0.5rem;
+                font-size: 1.2rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .hero-title {
+                font-size: 2rem;
+            }
+
+            .movie-card {
+                width: 240px;
+            }
+
+            .row-title {
+                font-size: 1.5rem;
+            }
+
+            .splash-logo {
+                font-size: 4rem;
+            }
+
+            .install-prompt-content {
+                flex-direction: column;
+                text-align: center;
+            }
+
+            .downloads-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Enhanced K-Drama and New Genre Styles */
+        .genre-badge {
+            background: linear-gradient(135deg, #ff6b6b, #ee5a24);
+            color: white;
+            padding: 0.3rem 1rem;
+            border-radius: 15px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .korean-badge {
+            background: linear-gradient(135deg, #ff6b6b, #c23616);
+        }
+
+        .bollywood-badge {
+            background: linear-gradient(135deg, #ff9ff3, #f368e0);
+        }
+
+        .sci-fi-badge {
+            background: linear-gradient(135deg, #00d2d3, #54a0ff);
+        }
+
+        /* Quick Actions Panel */
+        .quick-actions {
+            position: fixed;
+            top: 50%;
+            right: 20px;
+            transform: translateY(-50%);
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            z-index: 999;
+        }
+
+        .quick-action-btn {
+            background: var(--bera-red);
+            color: white;
+            border: none;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 15px rgba(229, 9, 20, 0.4);
+        }
+
+        .quick-action-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 20px rgba(229, 9, 20, 0.6);
+        }
+
+        /* Download Progress Indicator */
+        .download-progress-indicator {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: var(--bera-dark);
+            border: 2px solid var(--bera-gold);
+            border-radius: 10px;
+            padding: 1rem;
+            z-index: 1001;
+            display: none;
+            max-width: 300px;
+        }
+
+        .progress-text {
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background: var(--bera-gray);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: var(--bera-gold);
+            width: 0%;
+            transition: width 0.3s;
+        }
+
+        /* User Section */
+        .user-section {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+        }
+
+        .downloads-btn {
+            background: transparent;
+            border: 2px solid var(--bera-gold);
+            color: var(--bera-gold);
+            padding: 0.6rem 1.2rem;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .install-app-btn {
+            background: transparent;
+            border: 2px solid var(--bera-blue);
+            color: var(--bera-blue);
+            padding: 0.6rem 1.2rem;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .user-avatar {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            background: var(--bera-gradient);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            cursor: pointer;
+            border: 2px solid var(--bera-red);
+            transition: all 0.3s;
+        }
     </style>
 </head>
 <body>
-    <!-- Install Prompt -->
+    <!-- Enhanced Install Prompt -->
     <div id="installPrompt" class="install-prompt">
-        <p>Install Beraflix for better experience</p>
-        <button id="installBtn">Install App</button>
-        <button id="cancelInstall">Not Now</button>
+        <div class="install-prompt-content">
+            <div class="install-icon">
+                <i class="fas fa-download"></i>
+            </div>
+            <div class="install-text">
+                <h3>Install Beraflix</h3>
+                <p>Get the best streaming experience with our app</p>
+            </div>
+        </div>
+        <div class="install-buttons">
+            <button class="install-btn" id="installBtn">
+                <i class="fas fa-download"></i> Install
+            </button>
+            <button class="install-btn cancel-install" id="cancelInstall">
+                Later
+            </button>
+        </div>
+    </div>
+
+    <!-- Mobile Bottom Navigation -->
+    <nav class="mobile-nav">
+        <div class="mobile-nav-items">
+            <a href="#" class="mobile-nav-item active">
+                <i class="fas fa-home"></i>
+                <span>Home</span>
+            </a>
+            <a href="#" class="mobile-nav-item" id="mobileSearchBtn">
+                <i class="fas fa-search"></i>
+                <span>Search</span>
+            </a>
+            <a href="#" class="mobile-nav-item" id="mobileDownloadsBtn">
+                <i class="fas fa-download"></i>
+                <span>Downloads</span>
+            </a>
+            <a href="#" class="mobile-nav-item" id="mobileInstallBtn">
+                <i class="fas fa-plus"></i>
+                <span>Install</span>
+            </a>
+        </div>
+    </nav>
+
+    <!-- Mobile Search Overlay -->
+    <div class="mobile-search-overlay" id="mobileSearchOverlay">
+        <div class="mobile-search-header">
+            <input type="text" class="mobile-search-input" id="mobileSearchInput" placeholder="Search movies and TV shows..." autofocus>
+            <button class="close-mobile-search" id="closeMobileSearch">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="search-results-container" id="mobileSearchResults">
+            <!-- Mobile search results will appear here -->
+        </div>
+    </div>
+
+    <!-- Download Progress Indicator -->
+    <div class="download-progress-indicator" id="downloadProgress">
+        <div class="progress-text" id="progressText">Downloading...</div>
+        <div class="progress-bar">
+            <div class="progress-fill" id="progressFill"></div>
+        </div>
+    </div>
+
+    <!-- Quick Actions Panel -->
+    <div class="quick-actions">
+        <button class="quick-action-btn" id="quickSearch" title="Search">
+            <i class="fas fa-search"></i>
+        </button>
+        <button class="quick-action-btn" id="quickDownloads" title="Downloads">
+            <i class="fas fa-download"></i>
+        </button>
+        <button class="quick-action-btn" id="quickInstall" title="Install App">
+            <i class="fas fa-download"></i>
+        </button>
     </div>
 
     <!-- Splash Screen -->
@@ -1156,6 +1527,9 @@ app.get('/', (req, res) => {
             <div class="nav-search">
                 <div class="search-container">
                     <input type="text" class="search-input" id="searchInput" placeholder="Search movies and TV shows...">
+                    <button class="mobile-search-btn">
+                        <i class="fas fa-search"></i>
+                    </button>
                     <button class="search-btn" id="searchBtn">
                         <i class="fas fa-search"></i> Search
                     </button>
@@ -1254,6 +1628,72 @@ app.get('/', (req, res) => {
                         </div>
                     </div>
                     <button class="scroll-btn scroll-right" onclick="scrollRow('popularContainer', 400)">
+                        <i class="fas fa-chevron-right"></i>
+                    </button>
+                </div>
+            </section>
+
+            <!-- K-Drama Series -->
+            <section class="row" id="kdramaRow">
+                <div class="row-header">
+                    <h2 class="row-title">🎎 K-Drama Series</h2>
+                    <span class="premium-badge korean-badge">Korean</span>
+                </div>
+                <div class="row-content">
+                    <button class="scroll-btn scroll-left" onclick="scrollRow('kdramaContainer', -400)">
+                        <i class="fas fa-chevron-left"></i>
+                    </button>
+                    <div class="movies-container" id="kdramaContainer">
+                        <div class="loading">
+                            <div class="loading-spinner"></div>
+                            Loading K-Dramas...
+                        </div>
+                    </div>
+                    <button class="scroll-btn scroll-right" onclick="scrollRow('kdramaContainer', 400)">
+                        <i class="fas fa-chevron-right"></i>
+                    </button>
+                </div>
+            </section>
+
+            <!-- Bollywood Hits -->
+            <section class="row" id="bollywoodRow">
+                <div class="row-header">
+                    <h2 class="row-title">💃 Bollywood Hits</h2>
+                    <span class="premium-badge bollywood-badge">Indian</span>
+                </div>
+                <div class="row-content">
+                    <button class="scroll-btn scroll-left" onclick="scrollRow('bollywoodContainer', -400)">
+                        <i class="fas fa-chevron-left"></i>
+                    </button>
+                    <div class="movies-container" id="bollywoodContainer">
+                        <div class="loading">
+                            <div class="loading-spinner"></div>
+                            Loading Bollywood movies...
+                        </div>
+                    </div>
+                    <button class="scroll-btn scroll-right" onclick="scrollRow('bollywoodContainer', 400)">
+                        <i class="fas fa-chevron-right"></i>
+                    </button>
+                </div>
+            </section>
+
+            <!-- Sci-Fi & Fantasy -->
+            <section class="row" id="scifiRow">
+                <div class="row-header">
+                    <h2 class="row-title">🚀 Sci-Fi & Fantasy</h2>
+                    <span class="premium-badge sci-fi-badge">Future</span>
+                </div>
+                <div class="row-content">
+                    <button class="scroll-btn scroll-left" onclick="scrollRow('scifiContainer', -400)">
+                        <i class="fas fa-chevron-left"></i>
+                    </button>
+                    <div class="movies-container" id="scifiContainer">
+                        <div class="loading">
+                            <div class="loading-spinner"></div>
+                            Loading Sci-Fi movies...
+                        </div>
+                    </div>
+                    <button class="scroll-btn scroll-right" onclick="scrollRow('scifiContainer', 400)">
                         <i class="fas fa-chevron-right"></i>
                     </button>
                 </div>
@@ -1391,94 +1831,6 @@ app.get('/', (req, res) => {
                 </div>
             </section>
 
-            <!-- Drama -->
-            <section class="row" id="dramaRow">
-                <div class="row-header">
-                    <h2 class="row-title">🎭 Drama Series</h2>
-                    <span class="premium-badge">HD</span>
-                </div>
-                <div class="row-content">
-                    <button class="scroll-btn scroll-left" onclick="scrollRow('dramaContainer', -400)">
-                        <i class="fas fa-chevron-left"></i>
-                    </button>
-                    <div class="movies-container" id="dramaContainer">
-                        <div class="loading">
-                            <div class="loading-spinner"></div>
-                            Loading drama...
-                        </div>
-                    </div>
-                    <button class="scroll-btn scroll-right" onclick="scrollRow('dramaContainer', 400)">
-                        <i class="fas fa-chevron-right"></i>
-                    </button>
-                </div>
-            </section>
-
-            <!-- Comedy -->
-            <section class="row" id="comedyRow">
-                <div class="row-header">
-                    <h2 class="row-title">😂 Comedy Central</h2>
-                    <span class="premium-badge">HD</span>
-                </div>
-                <div class="row-content">
-                    <button class="scroll-btn scroll-left" onclick="scrollRow('comedyContainer', -400)">
-                        <i class="fas fa-chevron-left"></i>
-                    </button>
-                    <div class="movies-container" id="comedyContainer">
-                        <div class="loading">
-                            <div class="loading-spinner"></div>
-                            Loading comedy...
-                        </div>
-                    </div>
-                    <button class="scroll-btn scroll-right" onclick="scrollRow('comedyContainer', 400)">
-                        <i class="fas fa-chevron-right"></i>
-                    </button>
-                </div>
-            </section>
-
-            <!-- Thriller -->
-            <section class="row" id="thrillerRow">
-                <div class="row-header">
-                    <h2 class="row-title">🔪 Thriller & Suspense</h2>
-                    <span class="premium-badge">HD</span>
-                </div>
-                <div class="row-content">
-                    <button class="scroll-btn scroll-left" onclick="scrollRow('thrillerContainer', -400)">
-                        <i class="fas fa-chevron-left"></i>
-                    </button>
-                    <div class="movies-container" id="thrillerContainer">
-                        <div class="loading">
-                            <div class="loading-spinner"></div>
-                            Loading thrillers...
-                        </div>
-                    </div>
-                    <button class="scroll-btn scroll-right" onclick="scrollRow('thrillerContainer', 400)">
-                        <i class="fas fa-chevron-right"></i>
-                    </button>
-                </div>
-            </section>
-
-            <!-- Horror -->
-            <section class="row" id="horrorRow">
-                <div class="row-header">
-                    <h2 class="row-title">👻 Horror Movies</h2>
-                    <span class="premium-badge">HD</span>
-                </div>
-                <div class="row-content">
-                    <button class="scroll-btn scroll-left" onclick="scrollRow('horrorContainer', -400)">
-                        <i class="fas fa-chevron-left"></i>
-                    </button>
-                    <div class="movies-container" id="horrorContainer">
-                        <div class="loading">
-                            <div class="loading-spinner"></div>
-                            Loading horror movies...
-                        </div>
-                    </div>
-                    <button class="scroll-btn scroll-right" onclick="scrollRow('horrorContainer', 400)">
-                        <i class="fas fa-chevron-right"></i>
-                    </button>
-                </div>
-            </section>
-
             <!-- Search Results -->
             <section class="row" id="searchResultsRow" style="display: none;">
                 <div class="row-header">
@@ -1532,20 +1884,19 @@ app.get('/', (req, res) => {
     </div>
 
     <script>
-        // Enhanced Global State
+        // Enhanced Global State with new genres
         let currentMovies = [];
         let trendingMovies = [];
         let popularMovies = [];
+        let kdramaMovies = [];
+        let bollywoodMovies = [];
+        let scifiMovies = [];
         let actionMovies = [];
         let hollywoodMovies = [];
         let nollywoodMovies = [];
         let animeMovies = [];
         let disneyMovies = [];
         let romanceMovies = [];
-        let dramaMovies = [];
-        let comedyMovies = [];
-        let thrillerMovies = [];
-        let horrorMovies = [];
         let currentHeroMovie = null;
         let currentMovieSources = [];
         let userDownloads = JSON.parse(localStorage.getItem('beraflix_downloads')) || [];
@@ -1573,16 +1924,15 @@ app.get('/', (req, res) => {
         const heroDownloadBtn = document.getElementById('heroDownloadBtn');
         const trendingContainer = document.getElementById('trendingContainer');
         const popularContainer = document.getElementById('popularContainer');
+        const kdramaContainer = document.getElementById('kdramaContainer');
+        const bollywoodContainer = document.getElementById('bollywoodContainer');
+        const scifiContainer = document.getElementById('scifiContainer');
         const actionContainer = document.getElementById('actionContainer');
         const hollywoodContainer = document.getElementById('hollywoodContainer');
         const nollywoodContainer = document.getElementById('nollywoodContainer');
         const animeContainer = document.getElementById('animeContainer');
         const disneyContainer = document.getElementById('disneyContainer');
         const romanceContainer = document.getElementById('romanceContainer');
-        const dramaContainer = document.getElementById('dramaContainer');
-        const comedyContainer = document.getElementById('comedyContainer');
-        const thrillerContainer = document.getElementById('thrillerContainer');
-        const horrorContainer = document.getElementById('horrorContainer');
         const searchResultsRow = document.getElementById('searchResultsRow');
         const searchResultsContainer = document.getElementById('searchResultsContainer');
         const videoPlayer = document.getElementById('videoPlayer');
@@ -1599,6 +1949,22 @@ app.get('/', (req, res) => {
         const installBtn = document.getElementById('installBtn');
         const cancelInstall = document.getElementById('cancelInstall');
 
+        // Mobile DOM Elements
+        const mobileNav = document.querySelector('.mobile-nav');
+        const mobileSearchOverlay = document.getElementById('mobileSearchOverlay');
+        const mobileSearchInput = document.getElementById('mobileSearchInput');
+        const closeMobileSearch = document.getElementById('closeMobileSearch');
+        const mobileSearchResults = document.getElementById('mobileSearchResults');
+        const mobileSearchBtn = document.getElementById('mobileSearchBtn');
+        const mobileDownloadsBtn = document.getElementById('mobileDownloadsBtn');
+        const mobileInstallBtn = document.getElementById('mobileInstallBtn');
+        const downloadProgress = document.getElementById('downloadProgress');
+        const progressText = document.getElementById('progressText');
+        const progressFill = document.getElementById('progressFill');
+        const quickSearch = document.getElementById('quickSearch');
+        const quickDownloads = document.getElementById('quickDownloads');
+        const quickInstall = document.getElementById('quickInstall');
+
         // Initialize App
         document.addEventListener('DOMContentLoaded', async () => {
             setTimeout(() => {
@@ -1612,13 +1978,30 @@ app.get('/', (req, res) => {
                 e.preventDefault();
                 deferredPrompt = e;
                 installAppBtn.style.display = 'flex';
+                mobileInstallBtn.style.display = 'flex';
+                quickInstall.style.display = 'flex';
             });
 
             // Track app installation
             window.addEventListener('appinstalled', () => {
                 installAppBtn.style.display = 'none';
+                mobileInstallBtn.style.display = 'none';
+                quickInstall.style.display = 'none';
                 deferredPrompt = null;
+                localStorage.setItem('beraflix_app_installed', 'true');
             });
+
+            // Check if app is already installed
+            if (localStorage.getItem('beraflix_app_installed') === 'true') {
+                installAppBtn.style.display = 'none';
+                mobileInstallBtn.style.display = 'none';
+                quickInstall.style.display = 'none';
+            }
+
+            // Request notification permission
+            if ('Notification' in window && Notification.permission === 'default') {
+                Notification.requestPermission();
+            }
         });
 
         function initializeApp() {
@@ -1626,20 +2009,26 @@ app.get('/', (req, res) => {
             loadAllContent();
             updateDownloadsDisplay();
             registerServiceWorker();
+            setupMobileFeatures();
+            checkInstallPrompt();
         }
 
         function setupEventListeners() {
+            // Search functionality
             searchBtn.addEventListener('click', handleSearch);
             searchInput.addEventListener('keypress', (e) => {
                 if (e.key === 'Enter') handleSearch();
             });
 
+            // Install functionality
             installAppBtn.addEventListener('click', showInstallPrompt);
             installBtn.addEventListener('click', installApp);
             cancelInstall.addEventListener('click', hideInstallPrompt);
 
+            // Downloads functionality
             downloadsBtn.addEventListener('click', toggleDownloadsSection);
 
+            // Video player functionality
             closePlayer.addEventListener('click', () => {
                 videoPlayer.classList.add('hidden');
                 videoElement.pause();
@@ -1648,6 +2037,7 @@ app.get('/', (req, res) => {
 
             downloadPlayerBtn.addEventListener('click', showDownloadOptionsForCurrent);
 
+            // Scroll functionality
             window.addEventListener('scroll', () => {
                 if (window.scrollY > 100) {
                     navbar.classList.add('scrolled');
@@ -1656,6 +2046,7 @@ app.get('/', (req, res) => {
                 }
             });
 
+            // Hero buttons
             heroPlayBtn.addEventListener('click', () => {
                 if (currentHeroMovie) {
                     playMovie(currentHeroMovie.subjectId);
@@ -1687,17 +2078,86 @@ app.get('/', (req, res) => {
             });
         }
 
+        function setupMobileFeatures() {
+            // Mobile search functionality
+            mobileSearchBtn.addEventListener('click', () => {
+                mobileSearchOverlay.style.display = 'flex';
+                mobileSearchInput.focus();
+            });
+
+            closeMobileSearch.addEventListener('click', () => {
+                mobileSearchOverlay.style.display = 'none';
+            });
+
+            mobileSearchInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    const query = mobileSearchInput.value.trim();
+                    if (query) {
+                        handleMobileSearch(query);
+                    }
+                }
+            });
+
+            // Mobile navigation
+            mobileDownloadsBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                toggleDownloadsSection();
+            });
+
+            mobileInstallBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                showInstallPrompt();
+            });
+
+            // Quick actions
+            quickSearch.addEventListener('click', () => {
+                mobileSearchOverlay.style.display = 'flex';
+                mobileSearchInput.focus();
+            });
+
+            quickDownloads.addEventListener('click', () => {
+                toggleDownloadsSection();
+            });
+
+            quickInstall.addEventListener('click', () => {
+                showInstallPrompt();
+            });
+
+            // Hide quick actions on scroll
+            let lastScrollTop = 0;
+            window.addEventListener('scroll', () => {
+                const st = window.pageYOffset || document.documentElement.scrollTop;
+                if (st > lastScrollTop) {
+                    document.querySelector('.quick-actions').style.opacity = '0.5';
+                } else {
+                    document.querySelector('.quick-actions').style.opacity = '1';
+                }
+                lastScrollTop = st <= 0 ? 0 : st;
+            }, { passive: true });
+        }
+
         // PWA Functions
+        function checkInstallPrompt() {
+            setTimeout(() => {
+                const promptDismissed = localStorage.getItem('beraflix_install_dismissed');
+                if (!promptDismissed && deferredPrompt) {
+                    showInstallPrompt();
+                }
+            }, 10000);
+        }
+
         function showInstallPrompt() {
-            if (deferredPrompt) {
-                installPrompt.style.display = 'block';
-            } else {
-                alert('Your browser doesn\\'t support app installation or the app is already installed.');
-            }
+            installPrompt.style.display = 'block';
+            setTimeout(() => {
+                if (installPrompt.style.display === 'block') {
+                    hideInstallPrompt();
+                }
+            }, 30000);
         }
 
         function hideInstallPrompt() {
             installPrompt.style.display = 'none';
+            localStorage.setItem('beraflix_install_dismissed', 'true');
         }
 
         async function installApp() {
@@ -1708,6 +2168,8 @@ app.get('/', (req, res) => {
                 if (outcome === 'accepted') {
                     installPrompt.style.display = 'none';
                     installAppBtn.style.display = 'none';
+                    mobileInstallBtn.style.display = 'none';
+                    quickInstall.style.display = 'none';
                 }
                 deferredPrompt = null;
             }
@@ -1731,6 +2193,8 @@ app.get('/', (req, res) => {
             
             if (!isVisible) {
                 updateDownloadsDisplay();
+                // Scroll to downloads section
+                downloadsSection.scrollIntoView({ behavior: 'smooth' });
             }
         }
 
@@ -1776,16 +2240,15 @@ app.get('/', (req, res) => {
         async function loadAllContent() {
             await loadTrendingMovies();
             await loadPopularMovies();
+            await loadKdramaMovies();
+            await loadBollywoodMovies();
+            await loadScifiMovies();
             await loadActionMovies();
             await loadHollywoodMovies();
             await loadNollywoodMovies();
             await loadAnimeMovies();
             await loadDisneyMovies();
             await loadRomanceMovies();
-            await loadDramaMovies();
-            await loadComedyMovies();
-            await loadThrillerMovies();
-            await loadHorrorMovies();
         }
 
         // Load trending movies
@@ -1841,6 +2304,72 @@ app.get('/', (req, res) => {
             }
         }
 
+        // Load K-Drama movies
+        async function loadKdramaMovies() {
+            try {
+                kdramaContainer.innerHTML = '<div class="loading"><div class="loading-spinner"></div>Loading K-Dramas...</div>';
+                
+                const response = await fetch('/api/search/korean');
+                const data = await response.json();
+                
+                if (data.success && data.results && data.results.items.length > 0) {
+                    kdramaMovies = data.results.items.slice(0, 12);
+                    displayMovies(kdramaMovies, kdramaContainer);
+                } else {
+                    // Fallback to romance movies
+                    kdramaMovies = popularMovies.slice(0, 12);
+                    displayMovies(kdramaMovies, kdramaContainer);
+                }
+            } catch (error) {
+                console.error('Error loading K-Dramas:', error);
+                kdramaContainer.innerHTML = '<div class="error-message">Error loading K-Dramas.</div>';
+            }
+        }
+
+        // Load Bollywood movies
+        async function loadBollywoodMovies() {
+            try {
+                bollywoodContainer.innerHTML = '<div class="loading"><div class="loading-spinner"></div>Loading Bollywood movies...</div>';
+                
+                const response = await fetch('/api/search/bollywood');
+                const data = await response.json();
+                
+                if (data.success && data.results && data.results.items.length > 0) {
+                    bollywoodMovies = data.results.items.slice(0, 12);
+                    displayMovies(bollywoodMovies, bollywoodContainer);
+                } else {
+                    // Fallback to popular movies
+                    bollywoodMovies = popularMovies.slice(0, 12);
+                    displayMovies(bollywoodMovies, bollywoodContainer);
+                }
+            } catch (error) {
+                console.error('Error loading Bollywood movies:', error);
+                bollywoodContainer.innerHTML = '<div class="error-message">Error loading Bollywood movies.</div>';
+            }
+        }
+
+        // Load Sci-Fi movies
+        async function loadScifiMovies() {
+            try {
+                scifiContainer.innerHTML = '<div class="loading"><div class="loading-spinner"></div>Loading Sci-Fi movies...</div>';
+                
+                const response = await fetch('/api/search/scifi');
+                const data = await response.json();
+                
+                if (data.success && data.results && data.results.items.length > 0) {
+                    scifiMovies = data.results.items.slice(0, 12);
+                    displayMovies(scifiMovies, scifiContainer);
+                } else {
+                    // Fallback to action movies
+                    scifiMovies = popularMovies.slice(0, 12);
+                    displayMovies(scifiMovies, scifiContainer);
+                }
+            } catch (error) {
+                console.error('Error loading Sci-Fi movies:', error);
+                scifiContainer.innerHTML = '<div class="error-message">Error loading Sci-Fi movies.</div>';
+            }
+        }
+
         // Load action movies
         async function loadActionMovies() {
             try {
@@ -1873,7 +2402,6 @@ app.get('/', (req, res) => {
                     hollywoodMovies = data.results.items.slice(0, 12);
                     displayMovies(hollywoodMovies, hollywoodContainer);
                 } else {
-                    // Fallback to popular movies
                     hollywoodMovies = popularMovies.slice(0, 12);
                     displayMovies(hollywoodMovies, hollywoodContainer);
                 }
@@ -1963,84 +2491,48 @@ app.get('/', (req, res) => {
             }
         }
 
-        // Load Drama
-        async function loadDramaMovies() {
+        // Mobile Search Handler
+        async function handleMobileSearch(query) {
             try {
-                dramaContainer.innerHTML = '<div class="loading"><div class="loading-spinner"></div>Loading drama...</div>';
+                mobileSearchResults.innerHTML = '<div class="loading"><div class="loading-spinner"></div>Searching...</div>';
                 
-                const response = await fetch('/api/search/drama');
+                const response = await fetch('/api/search/' + encodeURIComponent(query));
                 const data = await response.json();
                 
                 if (data.success && data.results && data.results.items.length > 0) {
-                    dramaMovies = data.results.items.slice(0, 12);
-                    displayMovies(dramaMovies, dramaContainer);
+                    displayMobileSearchResults(data.results.items);
                 } else {
-                    dramaContainer.innerHTML = '<div class="error-message">No drama found.</div>';
+                    mobileSearchResults.innerHTML = '<div class="error-message">No results found</div>';
                 }
             } catch (error) {
-                console.error('Error loading drama:', error);
-                dramaContainer.innerHTML = '<div class="error-message">Error loading drama.</div>';
+                console.error('Mobile search error:', error);
+                mobileSearchResults.innerHTML = '<div class="error-message">Search failed</div>';
             }
         }
 
-        // Load Comedy
-        async function loadComedyMovies() {
-            try {
-                comedyContainer.innerHTML = '<div class="loading"><div class="loading-spinner"></div>Loading comedy...</div>';
-                
-                const response = await fetch('/api/search/comedy');
-                const data = await response.json();
-                
-                if (data.success && data.results && data.results.items.length > 0) {
-                    comedyMovies = data.results.items.slice(0, 12);
-                    displayMovies(comedyMovies, comedyContainer);
-                } else {
-                    comedyContainer.innerHTML = '<div class="error-message">No comedy found.</div>';
-                }
-            } catch (error) {
-                console.error('Error loading comedy:', error);
-                comedyContainer.innerHTML = '<div class="error-message">Error loading comedy.</div>';
-            }
+        function displayMobileSearchResults(movies) {
+            mobileSearchResults.innerHTML = movies.map(movie => 
+                '<div class="mobile-search-result" onclick="selectMobileResult(' + JSON.stringify(movie).replace(/"/g, '&quot;') + ')">' +
+                    '<div style="display: flex; gap: 1rem; padding: 1rem; border-bottom: 1px solid var(--bera-gray);">' +
+                        (movie.cover && movie.cover.url ? 
+                            '<img src="' + movie.cover.url + '" alt="' + movie.title + '" style="width: 60px; height: 80px; object-fit: cover; border-radius: 8px;">' :
+                            '<div style="width: 60px; height: 80px; background: var(--bera-gradient); border-radius: 8px; display: flex; align-items: center; justify-content: center; color: white; font-size: 0.8rem; text-align: center; padding: 0.5rem;">MOVIE</div>'
+                        ) +
+                        '<div style="flex: 1;">' +
+                            '<div style="font-weight: 600; margin-bottom: 0.5rem;">' + (movie.title || 'Unknown Title') + '</div>' +
+                            '<div style="font-size: 0.9rem; color: var(--bera-light); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">' + 
+                                (movie.description || 'No description available') +
+                            '</div>' +
+                        '</div>' +
+                    '</div>' +
+                '</div>'
+            ).join('');
         }
 
-        // Load Thriller
-        async function loadThrillerMovies() {
-            try {
-                thrillerContainer.innerHTML = '<div class="loading"><div class="loading-spinner"></div>Loading thrillers...</div>';
-                
-                const response = await fetch('/api/search/thriller');
-                const data = await response.json();
-                
-                if (data.success && data.results && data.results.items.length > 0) {
-                    thrillerMovies = data.results.items.slice(0, 12);
-                    displayMovies(thrillerMovies, thrillerContainer);
-                } else {
-                    thrillerContainer.innerHTML = '<div class="error-message">No thrillers found.</div>';
-                }
-            } catch (error) {
-                console.error('Error loading thrillers:', error);
-                thrillerContainer.innerHTML = '<div class="error-message">Error loading thrillers.</div>';
-            }
-        }
-
-        // Load Horror
-        async function loadHorrorMovies() {
-            try {
-                horrorContainer.innerHTML = '<div class="loading"><div class="loading-spinner"></div>Loading horror movies...</div>';
-                
-                const response = await fetch('/api/search/horror');
-                const data = await response.json();
-                
-                if (data.success && data.results && data.results.items.length > 0) {
-                    horrorMovies = data.results.items.slice(0, 12);
-                    displayMovies(horrorMovies, horrorContainer);
-                } else {
-                    horrorContainer.innerHTML = '<div class="error-message">No horror movies found.</div>';
-                }
-            } catch (error) {
-                console.error('Error loading horror movies:', error);
-                horrorContainer.innerHTML = '<div class="error-message">Error loading horror movies.</div>';
-            }
+        function selectMobileResult(movie) {
+            mobileSearchOverlay.style.display = 'none';
+            mobileSearchInput.value = '';
+            showMovieDetails(movie.subjectId);
         }
 
         // Search movies
@@ -2157,10 +2649,23 @@ app.get('/', (req, res) => {
             }
         }
 
-        // Download movie function
+        // Enhanced Download with Progress
         async function downloadMovie(movieId, title, quality, url, size) {
             try {
-                // Create download link with Beraflix branding
+                // Show progress indicator
+                downloadProgress.style.display = 'block';
+                progressText.textContent = 'Downloading "' + title + '" - ' + quality;
+                progressFill.style.width = '0%';
+
+                // Simulate download progress
+                const progressInterval = setInterval(() => {
+                    const currentWidth = parseInt(progressFill.style.width) || 0;
+                    if (currentWidth < 90) {
+                        progressFill.style.width = (currentWidth + 10) + '%';
+                    }
+                }, 200);
+
+                // Create download link
                 const link = document.createElement('a');
                 link.href = url;
                 link.download = 'Beraflix_' + title.replace(/[^a-z0-9]/gi, '_') + '_' + quality + '.mp4';
@@ -2169,7 +2674,12 @@ app.get('/', (req, res) => {
                 document.body.appendChild(link);
                 link.click();
                 document.body.removeChild(link);
-                
+
+                // Complete progress
+                clearInterval(progressInterval);
+                progressFill.style.width = '100%';
+                progressText.textContent = 'Download Complete!';
+
                 // Add to downloads history
                 const download = {
                     movieId: movieId,
@@ -2181,19 +2691,31 @@ app.get('/', (req, res) => {
                 };
                 
                 userDownloads.unshift(download);
-                // Keep only last 20 downloads
                 userDownloads = userDownloads.slice(0, 20);
                 localStorage.setItem('beraflix_downloads', JSON.stringify(userDownloads));
-                
-                // Show success message
-                alert('🎉 Download started!\\n\\n"' + title + '" - ' + quality + '\\n\\nSaved as: Beraflix_' + title.replace(/[^a-z0-9]/gi, '_') + '_' + quality + '.mp4\\n\\nThank you for using Beraflix! 🎬');
-                
+
+                // Hide progress after delay
+                setTimeout(() => {
+                    downloadProgress.style.display = 'none';
+                }, 2000);
+
+                // Show success notification
+                if ('Notification' in window && Notification.permission === 'granted') {
+                    new Notification('Beraflix Download Complete', {
+                        body: '"' + title + '" - ' + quality + ' has been downloaded',
+                        icon: '/icon-192.png'
+                    });
+                }
+
                 downloadModal.style.display = 'none';
                 updateDownloadsDisplay();
                 
             } catch (error) {
-                console.error('Error downloading movie:', error);
-                alert('Error starting download. Please try again.');
+                console.error('Download error:', error);
+                progressText.textContent = 'Download Failed';
+                setTimeout(() => {
+                    downloadProgress.style.display = 'none';
+                }, 3000);
             }
         }
 
@@ -2207,7 +2729,7 @@ app.get('/', (req, res) => {
 
         // Redownload movie
         function redownloadMovie(movieId) {
-            const allMovies = [...trendingMovies, ...popularMovies, ...actionMovies, ...hollywoodMovies, ...nollywoodMovies, ...animeMovies, ...disneyMovies, ...romanceMovies, ...dramaMovies, ...comedyMovies, ...thrillerMovies, ...horrorMovies, ...currentMovies];
+            const allMovies = [...trendingMovies, ...popularMovies, ...kdramaMovies, ...bollywoodMovies, ...scifiMovies, ...actionMovies, ...hollywoodMovies, ...nollywoodMovies, ...animeMovies, ...disneyMovies, ...romanceMovies, ...currentMovies];
             const movie = allMovies.find(m => m.subjectId === movieId);
             if (movie) {
                 showDownloadModal(movie);
@@ -2216,7 +2738,7 @@ app.get('/', (req, res) => {
 
         // Show download options for current playing movie
         function showDownloadOptionsForCurrent() {
-            const allMovies = [...trendingMovies, ...popularMovies, ...actionMovies, ...hollywoodMovies, ...nollywoodMovies, ...animeMovies, ...disneyMovies, ...romanceMovies, ...dramaMovies, ...comedyMovies, ...thrillerMovies, ...horrorMovies, ...currentMovies];
+            const allMovies = [...trendingMovies, ...popularMovies, ...kdramaMovies, ...bollywoodMovies, ...scifiMovies, ...actionMovies, ...hollywoodMovies, ...nollywoodMovies, ...animeMovies, ...disneyMovies, ...romanceMovies, ...currentMovies];
             const currentMovieId = videoElement.src.includes('/api/') ? videoElement.src.split('/').pop() : null;
             const movie = allMovies.find(m => m.subjectId === currentMovieId);
             if (movie) {
@@ -2239,7 +2761,7 @@ app.get('/', (req, res) => {
                     
                     const videoSource = selectedSource.download_url;
                     
-                    const allMovies = [...trendingMovies, ...popularMovies, ...actionMovies, ...hollywoodMovies, ...nollywoodMovies, ...animeMovies, ...disneyMovies, ...romanceMovies, ...dramaMovies, ...comedyMovies, ...thrillerMovies, ...horrorMovies, ...currentMovies];
+                    const allMovies = [...trendingMovies, ...popularMovies, ...kdramaMovies, ...bollywoodMovies, ...scifiMovies, ...actionMovies, ...hollywoodMovies, ...nollywoodMovies, ...animeMovies, ...disneyMovies, ...romanceMovies, ...currentMovies];
                     const movie = allMovies.find(m => m.subjectId === movieId);
                     
                     videoElement.src = videoSource;
@@ -2267,7 +2789,7 @@ app.get('/', (req, res) => {
                 
                 if (data.success && data.results && data.results.subject) {
                     const movie = data.results.subject;
-                    const play = confirm((movie.title || 'Movie') + '\\n\\n' + (movie.description || 'No description available') + '\\n\\nRating: ' + (movie.imdbRatingValue || 'N/A') + '/10\\nGenre: ' + (movie.genre || 'N/A') + '\\n\\nClick OK to watch or Cancel to download.');
+                    const play = confirm(movie.title + '\\n\\n' + (movie.description || 'No description available') + '\\n\\nRating: ' + (movie.imdbRatingValue || 'N/A') + '/10\\nGenre: ' + (movie.genre || 'N/A') + '\\n\\nClick OK to watch or Cancel to download.');
                     
                     if (play) {
                         playMovie(movieId);
@@ -2329,6 +2851,8 @@ app.get('/', (req, res) => {
         window.toggleDownloadsSection = toggleDownloadsSection;
         window.showInstallPrompt = showInstallPrompt;
         window.installApp = installApp;
+        window.selectMobileResult = selectMobileResult;
+        window.handleMobileSearch = handleMobileSearch;
     </script>
 </body>
 </html>
@@ -2436,7 +2960,7 @@ app.get('/health', (req, res) => {
     timestamp: new Date().toISOString(),
     service: 'Beraflix - Premium Streaming Platform',
     movie_api: MOVIE_API_BASE,
-    features: ['HD Streaming', 'Offline Downloads', '4K Content', 'Premium Experience', 'Multiple Categories', 'PWA Support']
+    features: ['HD Streaming', 'Offline Downloads', '4K Content', 'Premium Experience', 'Multiple Categories', 'PWA Support', 'Mobile Friendly', 'K-Drama', 'Bollywood', 'Sci-Fi']
   });
 });
 
@@ -2447,8 +2971,8 @@ app.listen(PORT, () => {
   console.log(`🎯 Movie API: ${MOVIE_API_BASE}`);
   console.log(`✨ Brand: BERAFLIX - The Ultimate Streaming Experience`);
   console.log(`💫 Features: HD Streaming • Offline Downloads • 4K Content`);
-  console.log(`📱 PWA: Installable App • Offline Support`);
-  console.log(`🎭 Categories: Hollywood • Nollywood • Anime • Disney • Romance • Drama • Comedy • Thriller • Horror`);
+  console.log(`📱 PWA: Installable App • Offline Support • Mobile Optimized`);
+  console.log(`🎭 Categories: Hollywood • Nollywood • Anime • K-Drama • Bollywood • Sci-Fi • Disney • Romance`);
 });
 
 module.exports = app;
