@@ -17,9 +17,6 @@ const supabase = createClient(
   process.env.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhmY3pycnlxb2Nnbm1ia3dlbW11Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE3MjAxMDQsImV4cCI6MjA3NzI5NjEwNH0.L7mltOW-QysNLyQ7vru87dntXqZCjdFRCEEL-Zwpwvw'
 );
 
-// Movie API Base URL
-const MOVIE_API_BASE = 'https://movieapi.giftedtech.co.ke/api';
-
 // YouTube APIs Configuration
 const YOUTUBE_APIS = {
   baseURL: 'https://api.giftedtech.co.ke/api',
@@ -31,9 +28,6 @@ const YOUTUBE_APIS = {
   }
 };
 
-// JWT Secret
-const JWT_SECRET = process.env.JWT_SECRET || 'beraflix_super_secret_key_2024';
-
 // Middleware
 app.use(cors());
 app.use(compression());
@@ -41,7 +35,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static('public'));
 
-// Enhanced YouTube API Class with Search-to-Download functionality
+// YouTube API Class
 class YouTubeAPI {
   constructor() {
     this.baseURL = YOUTUBE_APIS.baseURL;
@@ -162,13 +156,13 @@ const youtubeAPI = new YouTubeAPI();
 
 // Serve main HTML
 app.get('/', (req, res) => {
-  res.send(`
+  const html = `
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Beraflix - Stream & Download</title>
+    <title>Beraflix - YouTube Downloader</title>
     <style>
         body {
             background: #0a0a0a;
@@ -354,23 +348,26 @@ app.get('/', (req, res) => {
                 return;
             }
 
-            results.innerHTML = videos.map(video => `
+            results.innerHTML = videos.map(video => {
+                const safeTitle = video.title.replace(/'/g, "\\\\'");
+                return \`
                 <div class="video-card">
-                    <img src="${video.thumbnail}" class="video-thumbnail" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjE4MCIgdmlld0JveD0iMCAwIDMwMCAxODAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjMwMCIgaGVpZ2h0PSIxODAiIGZpbGw9IiMxNDE0MTQiLz48dGV4dCB4PSIxNTAiIHk9IjkwIiBmaWxsPSIjOEM4QzhDIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTQiIHRleHQtYW5jaG9yPSJtaWRkbGUiPllPVVRVQkUgVklERU88L3RleHQ+PC9zdmc+'">
-                    <div class="video-title">${video.title}</div>
+                    <img src="\${video.thumbnail}" class="video-thumbnail" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjE4MCIgdmlld0JveD0iMCAwIDMwMCAxODAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjMwMCIgaGVpZ2h0PSIxODAiIGZpbGw9IiMxNDE0MTQiLz48dGV4dCB4PSIxNTAiIHk9IjkwIiBmaWxsPSIjOEM4QzhDIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTQiIHRleHQtYW5jaG9yPSJtaWRkbGUiPllPVVRVQkUgVklERU88L3RleHQ+PC9zdmc+'">
+                    <div class="video-title">\${video.title}</div>
                     <div style="color: #ccc; font-size: 14px; margin-bottom: 10px;">
-                        ${video.duration || 'N/A'} • ${video.views || 'N/A'} views
+                        \${video.duration || 'N/A'} • \${video.views || 'N/A'} views
                     </div>
                     <div class="download-buttons">
-                        <button class="download-btn" onclick="downloadVideo('${video.id}', '${video.title.replace(/'/g, "\\'")}', 'mp4')">
+                        <button class="download-btn" onclick="downloadVideo('\${video.id}', '\${safeTitle}', 'mp4')">
                             📥 MP4
                         </button>
-                        <button class="download-btn mp3" onclick="downloadVideo('${video.id}', '${video.title.replace(/'/g, "\\'")}', 'mp3')">
+                        <button class="download-btn mp3" onclick="downloadVideo('\${video.id}', '\${safeTitle}', 'mp3')">
                             🎵 MP3
                         </button>
                     </div>
                 </div>
-            `).join('');
+                \`;
+            }).join('');
         }
 
         async function downloadVideo(videoId, title, type) {
@@ -408,10 +405,11 @@ app.get('/', (req, res) => {
     </script>
 </body>
 </html>
-  `);
+  `;
+  res.send(html);
 });
 
-// API Routes - Only the YouTube APIs you wanted
+// API Routes
 app.get('/api/youtube/search/:query', async (req, res) => {
   try {
     const query = req.params.query;
