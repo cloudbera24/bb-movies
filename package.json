@@ -1,26 +1,35 @@
 {
-  "name": "bb-movies",
-  "version": "1.0.0",
-  "description": "BB Movies - A Bera Tech Creation",
+  "name": "beraflix-enhanced",
+  "version": "2.0.0",
+  "description": "Premium Streaming Platform with MongoDB Authentication",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "build": "echo 'No build step required'"
+    "dev": "nodemon server.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {
     "express": "^4.18.2",
+    "mongoose": "^7.5.0",
+    "bcryptjs": "^2.4.3",
+    "jsonwebtoken": "^9.0.2",
     "cors": "^2.8.5",
     "dotenv": "^16.3.1",
+    "compression": "^1.7.4",
+    "express-rate-limit": "^6.10.0",
     "node-fetch": "^2.6.7",
-    "@supabase/supabase-js": "^2.43.0",
-    "bcryptjs": "^2.4.3", 
-    "mongodb": "^6.3.0", 
-    "jsonwebtoken": "^9.0.2",
-    "compression": "^1.7.4"
+    "@supabase/supabase-js": "^2.21.0"
   },
-  "engines": {
-    "node": ">=18.0.0"
+  "devDependencies": {
+    "nodemon": "^3.0.1"
   },
-  "author": "Bera Tech",
+  "keywords": [
+    "streaming",
+    "movies",
+    "mongodb",
+    "authentication",
+    "pwa"
+  ],
+  "author": "Beraflix Team",
   "license": "MIT"
 }
