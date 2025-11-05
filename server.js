@@ -364,7 +364,7 @@ app.get('/api/youtube/search/:query', async (req, res) => {
 
 app.get('/api/youtube/download/search', async (req, res) => {
   try {
-    const { query, format } = req.query;
+    const { query, type = 'mp4' } = req.query;
     
     if (!query) {
       return res.status(400).json({
@@ -373,18 +373,19 @@ app.get('/api/youtube/download/search', async (req, res) => {
       });
     }
     
-    console.log('Downloading YouTube video by search:', query, format);
+    console.log('YouTube Download by Search:', query, type);
     
-    const result = await youtubeAPI.downloadBySearch(query, format || 'mp4');
+    const result = await youtubeAPI.downloadBySearch(query, type);
     
     if (result.success) {
       res.json({
         success: true,
-        results: result.downloadData,
-        video: result.video,
-        type: result.type,
-        source: 'youtube-search',
-        attempt: result.attempt
+        results: {
+          video: result.video,
+          download: result.downloadData,
+          type: result.type,
+          attempt: result.attempt
+        }
       });
     } else {
       res.status(500).json({
@@ -394,7 +395,7 @@ app.get('/api/youtube/download/search', async (req, res) => {
       });
     }
   } catch (error) {
-    console.error('Error downloading YouTube video:', error);
+    console.error('Error downloading YouTube by search:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to download YouTube video'
@@ -404,7 +405,7 @@ app.get('/api/youtube/download/search', async (req, res) => {
 
 app.get('/api/youtube/download/direct', async (req, res) => {
   try {
-    const { url, format } = req.query;
+    const { url, type = 'mp4' } = req.query;
     
     if (!url) {
       return res.status(400).json({
@@ -413,9 +414,9 @@ app.get('/api/youtube/download/direct', async (req, res) => {
       });
     }
     
-    console.log('Direct YouTube download:', url, format);
+    console.log('Direct YouTube Download:', url, type);
     
-    const result = await youtubeAPI.downloadDirect(url, format || 'mp4');
+    const result = await youtubeAPI.downloadDirect(url, type);
     
     if (result.success) {
       res.json({
@@ -432,7 +433,7 @@ app.get('/api/youtube/download/direct', async (req, res) => {
       });
     }
   } catch (error) {
-    console.error('Error in direct YouTube download:', error);
+    console.error('Error direct downloading YouTube:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to download YouTube video'
@@ -509,7 +510,7 @@ app.get('/health', (req, res) => {
     service: 'Beraflix - Premium Streaming Platform',
     movie_api: MOVIE_API_BASE,
     youtube_api: YOUTUBE_APIS.baseURL,
-    features: ['HD Streaming', 'Offline Downloads', '4K Content', 'YouTube Downloader', 'PWA Support']
+    features: ['HD Streaming', 'Offline Downloads', '4K Content', 'YouTube Downloader', 'Premium Experience', 'Multiple Categories', 'PWA Support', 'Mobile Friendly']
   });
 });
 
@@ -518,5 +519,9 @@ app.listen(PORT, () => {
   console.log(`📍 Visit: http://localhost:${PORT}`);
   console.log(`🎯 Movie API: ${MOVIE_API_BASE}`);
   console.log(`📺 YouTube API: ${YOUTUBE_APIS.baseURL}`);
-  console.log(`✨ Features: HD Streaming • YouTube Downloads • Offline Viewing`);
+  console.log(`✨ Brand: BERAFLIX - The Ultimate Streaming Experience`);
+  console.log(`💫 Features: HD Streaming • Offline Downloads • 4K Content • YouTube Downloader`);
+  console.log(`📱 PWA: Installable App • Offline Support • Mobile Optimized`);
 });
+
+module.exports = app;
