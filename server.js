@@ -186,6 +186,11 @@ class YouTubeAPI {
 
 const youtubeAPI = new YouTubeAPI();
 
+// Serve the main HTML file
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
 app.get('/manifest.json', (req, res) => {
   res.json({
     "name": "Beraflix - Stream & Download Movies & YouTube",
@@ -299,6 +304,7 @@ app.get('/sw.js', (req, res) => {
   `);
 });
 
+// API Routes
 app.get('/api/search/:query', async (req, res) => {
   try {
     const query = req.params.query;
@@ -514,6 +520,7 @@ app.get('/health', (req, res) => {
   });
 });
 
+// Start server
 app.listen(PORT, () => {
   console.log(`🎬 Beraflix Premium Server running on port ${PORT}`);
   console.log(`📍 Visit: http://localhost:${PORT}`);
