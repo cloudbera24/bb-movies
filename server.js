@@ -14,18 +14,22 @@
  * - PWA support
  * 
  * Deployment:
- * npm install express cors axios compression helmet path
+ * npm install express cors axios compression helmet
  * node server.js
  */
 
-const express = require('express');
-const cors = require('cors');
-const axios = require('axios');
-const compression = require('compression');
-const helmet = require('helmet');
-const path = require('path');
-const https = require('https');
-const http = require('http');
+import express from 'express';
+import cors from 'cors';
+import axios from 'axios';
+import compression from 'compression';
+import helmet from 'helmet';
+import path from 'path';
+import https from 'https';
+import http from 'http';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -802,4 +806,4 @@ app.listen(PORT, '0.0.0.0', () => {
     `);
 });
 
-module.exports = app;
+export default app;
