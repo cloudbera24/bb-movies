@@ -1,19 +1,29 @@
 {
-  "name": "beraflex",
+  "name": "beraflix",
   "version": "1.0.0",
-  "description": "A complete movie streaming website with neon theme",
+  "description": "Mobile-first streaming platform with real data",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "dev": "node server.js"
   },
   "dependencies": {
     "express": "^4.18.2",
+    "puppeteer": "^21.5.2",
+    "puppeteer-extra": "^3.3.6",
+    "puppeteer-extra-plugin-stealth": "^2.11.2",
     "axios": "^1.6.0",
     "cors": "^2.8.5",
-    "puppeteer-core": "^22.0.0",
-    "chrome-aws-lambda": "^10.1.0"
+    "helmet": "^7.1.0",
+    "compression": "^1.7.4",
+    "serve-favicon": "^2.5.0",
+    "express-rate-limit": "^7.1.5",
+    "node-cache": "^5.1.2"
   },
   "engines": {
-    "node": ">=16.0.0"
-  }
+    "node": ">=18.0.0"
+  },
+  "keywords": ["streaming", "movies", "series", "mobile-first"],
+  "author": "BERAFLIX",
+  "license": "MIT"
 }
